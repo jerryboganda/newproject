@@ -1,0 +1,89 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: streamvault
+      POSTGRES_PASSWORD: streamvault
+      POSTGRES_DB: streamvault_master
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamvault -d streamvault_master"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  api:
+    build:
+      context: ./streamvault-backend
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=streamvault_master;Username=streamvault;Password=streamvault"
+      REDIS_CONNECTION_STRING: "redis:6379"
+      JWT_ISSUER: "streamvault"
+      JWT_AUDIENCE: "streamvault"
+      JWT_SIGNING_KEY: "dev-signing-key-change"
+      SMTP_HOST: "mailhog"
+      SMTP_PORT: "1025"
+      STRIPE_SECRET_KEY: "sk_test_xxx"
+      STRIPE_WEBHOOK_SECRET: "whsec_xxx"
+      BUNNY_API_KEY: "change_me"
+      BUNNY_LIBRARY_ID: "change_me"
+      BUNNY_PULL_ZONE_ID: "change_me"
+      BUNNY_CDN_HOSTNAME: "cdn.example.com"
+      STORAGE_PROVIDER: "minio"
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_KEY: "minio"
+      MINIO_SECRET: "minio123"
+      MINIO_BUCKET: "streamvault"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./streamvault-frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:5000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:5000"
+      PORT: 3000
+    depends_on:
+      - api
+    ports:
+      - "3001:3000"
+
+volumes:
+  pgdata:
+  minio-data:

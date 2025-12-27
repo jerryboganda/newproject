@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.20" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\\StreamVault.Application\\StreamVault.Application.csproj" />
+    <ProjectReference Include="..\\StreamVault.Infrastructure\\StreamVault.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,37 @@
+name: Frontend CI
+
+on:
+  push:
+    paths:
+      - 'streamvault-frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    paths:
+      - 'streamvault-frontend/**'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: streamvault-frontend/package-lock.json
+
+      - name: Install deps
+        working-directory: streamvault-frontend
+        run: npm install
+
+      - name: Lint
+        working-directory: streamvault-frontend
+        run: npm run lint -- --no-cache
+
+      - name: Build
+        working-directory: streamvault-frontend
+        run: npm run build
