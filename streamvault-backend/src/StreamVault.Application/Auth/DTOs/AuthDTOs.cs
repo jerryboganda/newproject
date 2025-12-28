@@ -21,6 +21,34 @@ public class RefreshTokenRequest
     public string RefreshToken { get; set; } = string.Empty;
 }
 
+public class ResetPasswordRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class VerifyEmailRequest
+{
+    public string Token { get; set; } = string.Empty;
+}
+
+public class SendEmailRequest
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class VerifyTwoFactorRequest
+{
+    public string Code { get; set; } = string.Empty;
+}
+
 public class AuthResponse
 {
     public string AccessToken { get; set; } = string.Empty;
@@ -35,5 +63,6 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
     public List<string> Roles { get; set; } = new List<string>();
 }

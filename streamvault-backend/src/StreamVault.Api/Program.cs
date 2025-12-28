@@ -3,12 +3,28 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StreamVault.Api.Middleware;
 using StreamVault.Infrastructure.Data;
+using StreamVault.Application;
 using System.Text;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/streamvault-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+// Use Serilog
+builder.Host.UseSerilog();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Add application services
+builder.Services.AddApplicationServices(builder.Configuration);
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -20,10 +36,6 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-
-// Add DbContext for master DB
-builder.Services.AddDbContext<StreamVaultDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

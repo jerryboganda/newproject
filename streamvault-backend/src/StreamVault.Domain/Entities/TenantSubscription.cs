@@ -14,7 +14,7 @@ public class TenantSubscription
     [Required, ForeignKey("Plan")]
     public Guid PlanId { get; set; }
 
-    public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Trialing;
+    public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
 
     public BillingCycle BillingCycle { get; set; } = BillingCycle.Monthly;
 
@@ -36,20 +36,4 @@ public class TenantSubscription
     public Tenant Tenant { get; set; } = null!;
 
     public SubscriptionPlan Plan { get; set; } = null!;
-}
-
-public enum SubscriptionStatus
-{
-    Trialing,
-    Active,
-    PastDue,
-    Cancelled,
-    Paused
-}
-
-public enum BillingCycle
-{
-    Monthly,
-    Yearly,
-    Custom
 }

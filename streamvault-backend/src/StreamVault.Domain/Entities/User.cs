@@ -22,14 +22,36 @@ public class User
 
     public bool TwoFactorEnabled { get; set; } = false;
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
+    public bool IsEmailVerified { get; set; } = false;
+
+    public DateTimeOffset? EmailVerifiedAt { get; set; }
+
+    public string? RefreshToken { get; set; }
+
+    public DateTimeOffset? RefreshTokenExpiry { get; set; }
+
+    [Required, MaxLength(100)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, MaxLength(100)]
+    public string LastName { get; set; } = string.Empty;
+
+    public string? StripeCustomerId { get; set; }
+
+    public string? AvatarUrl { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? UpdatedAt { get; set; }
 
     // Navigation
-    public Tenant? Tenant { get; set; }
+    public Tenant Tenant { get; set; } = null!;
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+    public ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
+
+    public ICollection<TwoFactorAuthCode> TwoFactorAuthCodes { get; set; } = new List<TwoFactorAuthCode>();
 }
 
 public enum UserStatus

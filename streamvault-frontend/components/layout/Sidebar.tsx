@@ -1,0 +1,94 @@
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import {
+  HomeIcon,
+  VideoIcon,
+  UserGroupIcon,
+  CogIcon,
+  ChartBarIcon,
+  FolderIcon,
+  XIcon
+} from '@heroicons/react/outline';
+import classNames from 'classnames';
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: true },
+  { name: 'Videos', href: '/videos', icon: VideoIcon, current: false },
+  { name: 'Collections', href: '/collections', icon: FolderIcon, current: false },
+  { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, current: false },
+  { name: 'Users', href: '/users', icon: UserGroupIcon, current: false },
+  { name: 'Settings', href: '/settings', icon: CogIcon, current: false },
+];
+
+export function Sidebar() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router = useRouter();
+
+  return (
+    <>
+      {/* Mobile sidebar */}
+      <div className={classNames(
+        "fixed inset-0 flex z-40 md:hidden",
+        sidebarOpen ? "block" : "hidden"
+      )}>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
+        <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+          <div className="absolute top-0 right-0 -mr-12 pt-2">
+            <button
+              type="button"
+              className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <span className="sr-only">Close sidebar</span>
+              <XIcon className="h-6 w-6 text-white" aria-hidden="true" />
+            </button>
+          </div>
+          <SidebarContent />
+        </div>
+      </div>
+
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex md:flex-shrink-0">
+        <div className="flex flex-col w-64">
+          <SidebarContent />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SidebarContent() {
+  return (
+    <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+      <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        <div className="flex items-center flex-shrink-0 px-4">
+          <h1 className="text-xl font-bold text-gray-900">StreamVault</h1>
+        </div>
+        <nav className="mt-5 flex-1 px-2 space-y-1">
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={classNames(
+                item.current
+                  ? 'bg-blue-100 text-blue-900'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                'group flex items-center px-2 py-2 text-sm font-medium rounded-md'
+              )}
+            >
+              <item.icon
+                className={classNames(
+                  item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
+                  'mr-3 flex-shrink-0 h-6 w-6'
+                )}
+                aria-hidden="true"
+              />
+              {item.name}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
