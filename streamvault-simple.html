@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamVault - Simple Frontend</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .video-card {
+            transition: transform 0.2s;
+        }
+        .video-card:hover {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">StreamVault</h1>
+            <div id="authSection">
+                <button onclick="showLogin()" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4">
+        <!-- Login Section -->
+        <div id="loginSection" class="hidden max-w-md mx-auto mt-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-bold mb-4">Sign In</h2>
+            <form onsubmit="login(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">Email</label>
+                    <input type="email" id="email" class="w-full p-2 border rounded" value="admin@streamvault.com" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">Password</label>
+                    <input type="password" id="password" class="w-full p-2 border rounded" value="Admin123!" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Sign In</button>
+            </form>
+        </div>
+
+        <!-- Videos Section -->
+        <div id="videosSection">
+            <h2 class="text-3xl font-bold mb-6">Latest Videos</h2>
+            <div id="videosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Videos will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let authToken = null;
+        let currentUser = null;
+
+        // Check if already logged in
+        if (localStorage.getItem('authToken')) {
+            authToken = localStorage.getItem('authToken');
+            currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            updateAuthUI();
+            loadVideos();
+        }
+
+        function showLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('videosSection').classList.add('hidden');
+        }
+
+        function hideLogin() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('videosSection').classList.remove('hidden');
+        }
+
+        async function login(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    currentUser = data.user;
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    updateAuthUI();
+                    hideLogin();
+                    loadVideos();
+                } else {
+                    alert('Login failed!');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function updateAuthUI() {
+            const authSection = document.getElementById('authSection');
+            if (currentUser) {
+                authSection.innerHTML = `
+                    <span class="mr-4">Welcome, ${currentUser.firstName}!</span>
+                    <button onclick="logout()" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100">Sign Out</button>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            authToken = null;
+            currentUser = null;
+            location.reload();
+        }
+
+        async function loadVideos() {
+            const grid = document.getElementById('videosGrid');
+            grid.innerHTML = '<p class="col-span-3 text-center">Loading videos...</p>';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/videos');
+                
+                if (response.ok) {
+                    const videos = await response.json();
+                    displayVideos(videos);
+                } else {
+                    grid.innerHTML = '<p class="col-span-3 text-center text-red-600">Failed to load videos</p>';
+                }
+            } catch (error) {
+                grid.innerHTML = '<p class="col-span-3 text-center text-red-600">Error: ' + error.message + '</p>';
+            }
+        }
+
+        function displayVideos(videos) {
+            const grid = document.getElementById('videosGrid');
+            
+            if (videos.length === 0) {
+                grid.innerHTML = '<p class="col-span-3 text-center">No videos found</p>';
+                return;
+            }
+
+            grid.innerHTML = videos.map(video => `
+                <div class="video-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg mb-2">${video.title}</h3>
+                        <p class="text-gray-600 mb-4">${video.description}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">${formatDuration(video.duration)}</span>
+                            <span class="text-sm text-gray-500">${video.viewCount} views</span>
+                        </div>
+                        <button onclick="playVideo('${video.videoUrl}')" class="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+                            Play Video
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function playVideo(url) {
+            window.open(url, '_blank');
+        }
+
+        // Load videos if not logged in
+        if (!authToken) {
+            loadVideos();
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Domain.Entities;
 
-public class Comment
+public class Comment : ITenantEntity
 {
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -12,6 +13,9 @@ public class Comment
 
     [Required]
     public Guid UserId { get; set; }
+
+    [Required]
+    public Guid TenantId { get; set; }
 
     [Required]
     public string Content { get; set; } = string.Empty;
@@ -25,8 +29,8 @@ public class Comment
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Navigation properties
-    public Video Video { get; set; } = null!;
-    public User User { get; set; } = null!;
-    public Comment? Parent { get; set; }
-    public ICollection<Comment> Replies { get; set; } = new List<Comment>();
+    public virtual Video Video { get; set; } = null!;
+    public virtual User User { get; set; } = null!;
+    public virtual Comment? Parent { get; set; }
+    public virtual ICollection<Comment> Replies { get; set; } = new List<Comment>();
 }

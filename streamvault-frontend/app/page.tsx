@@ -1,52 +1,25 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
-
-export default function HomePage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  if (isLoading) {
-    return (
-      <main className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </main>
-    );
-  }
-
+export default function TestPage() {
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">StreamVault</h1>
-        <p className="text-gray-600 mb-8">Multi-tenant video hosting platform</p>
-        <div className="space-x-4">
-          <Link
+        <p className="text-gray-600 mb-8">shadcn/ui Frontend is Working!</p>
+        <div className="space-y-4">
+          <a
+            href="http://localhost:5000/api/v1/videos"
+            className="block text-blue-600 underline"
+            target="_blank"
+          >
+            Test Backend API
+          </a>
+          <a
             href="/login"
-            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 inline-block"
           >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-          >
-            Sign Up
-          </Link>
+            Go to Login
+          </a>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

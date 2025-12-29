@@ -42,7 +42,7 @@ export default function VideoDetailPage() {
   const fetchVideo = async (id: string) => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/v1/video/${id}`);
+      const response = await apiClient.get(`/api/v1/videos/${id}`);
       const videoData = response.data as any;
       setVideo(videoData);
       setEditTitle(videoData.title);
@@ -59,7 +59,7 @@ export default function VideoDetailPage() {
     if (!video) return;
 
     try {
-      await apiClient.put(`/api/v1/video/${video.id}`, {
+      await apiClient.put(`/api/v1/videos/${video.id}`, {
         title: editTitle,
         description: editDescription,
         isPublic: editIsPublic
@@ -81,7 +81,7 @@ export default function VideoDetailPage() {
     if (!video || !confirm('Are you sure you want to delete this video?')) return;
 
     try {
-      await apiClient.delete(`/api/v1/video/${video.id}`);
+      await apiClient.delete(`/api/v1/videos/${video.id}`);
       router.push('/videos');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete video');

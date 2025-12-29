@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Domain.Entities;
 
-public class Video
+public class Video : ITenantEntity
 {
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -47,16 +48,16 @@ public class Video
     public DateTimeOffset? PublishedAt { get; set; }
 
     // Navigation properties
-    public User User { get; set; } = null!;
-    public Tenant Tenant { get; set; } = null!;
-    public VideoCategory? Category { get; set; }
-    public ICollection<VideoTag> VideoTags { get; set; } = new List<VideoTag>();
-    public ICollection<VideoProcessingJob> ProcessingJobs { get; set; } = new List<VideoProcessingJob>();
-    public VideoSEO? SEO { get; set; }
-    public VideoMonetization? Monetization { get; set; }
-    public List<VideoPurchase> Purchases { get; set; } = new();
-    public List<VideoRental> Rentals { get; set; } = new();
-    public List<AdRevenue> AdRevenues { get; set; } = new();
+    public virtual User User { get; set; } = null!;
+    public virtual Tenant Tenant { get; set; } = null!;
+    public virtual VideoCategory? Category { get; set; }
+    public virtual ICollection<VideoTag> VideoTags { get; set; } = new List<VideoTag>();
+    public virtual ICollection<VideoProcessingJob> ProcessingJobs { get; set; } = new List<VideoProcessingJob>();
+    public virtual VideoSEO? SEO { get; set; }
+    public virtual VideoMonetization? Monetization { get; set; }
+    public virtual List<VideoPurchase> Purchases { get; set; } = new();
+    public virtual List<VideoRental> Rentals { get; set; } = new();
+    public virtual List<AdRevenue> AdRevenues { get; set; } = new();
 }
 
 public enum VideoStatus

@@ -82,10 +82,10 @@ export const apiClient = {
   // Auth endpoints
   auth: {
     login: (data: { email: string; password: string }) =>
-      api.post('/auth/login', data),
+      api.post('/api/v1/auth/login', data),
     
     register: (data: { email: string; password: string; firstName: string; lastName: string }) =>
-      api.post('/auth/register', data),
+      api.post('/api/v1/auth/register', data),
     
     logout: () => api.post('/auth/logout'),
     
@@ -112,7 +112,7 @@ export const apiClient = {
 
   // User endpoints
   users: {
-    getProfile: () => api.get('/users/profile'),
+    getProfile: () => api.get('/api/v1/user/profile'),
     
     updateProfile: (data: Partial<UserProfile>) =>
       api.put('/users/profile', data),
@@ -153,9 +153,9 @@ export const apiClient = {
   // Video endpoints
   videos: {
     getVideos: (params?: VideoListParams) =>
-      api.get('/videos', { params }),
+      api.get('/api/v1/videos', { params }),
     
-    getVideo: (id: string) => api.get(`/videos/${id}`),
+    getVideo: (id: string) => api.get(`/api/v1/videos/${id}`),
     
     uploadVideo: (formData: FormData) =>
       api.post('/videos/upload', formData, {

@@ -12,6 +12,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
 # Build outputs
 .next/
@@ -19,6 +20,8 @@ dist/
 bin/
 obj/
 coverage/
+build/
+out/
 
 # IDE
 .vscode/
@@ -27,6 +30,9 @@ coverage/
 *.user
 *.userosscache
 *.sln.docstates
+*.swp
+*.swo
+*~
 
 # Docker
 *.pid
@@ -34,3 +40,65 @@ coverage/
 # OS
 Thumbs.db
 .DS_Store
+Desktop.ini
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+*.lcov
+.nyc_output
+
+# Temporary folders
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.original
+
+# .NET specific
+*.cache
+*.psess
+*.vspscc
+*.vssscc
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+
+# NuGet
+*.nupkg
+packages/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Multiple project folders (exclude duplicates)
+CompleteBackend/
+SimpleBackend/
+StreamVaultClean/
+StreamVaultWorking/
+WorkingBackend/
+streamvault-fresh/
+streamvault-frontend/
+streamvault-shadcn/
+
+# Test files
+test-*.html
+debug.html
+
+# Monitoring and config
+monitoring/
+config/

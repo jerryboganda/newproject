@@ -41,14 +41,18 @@ export default function UploadPage() {
 
     try {
       // Initiate upload
-      const uploadResponse = await apiClient.post('/api/v1/video/upload/initiate', {
+      const uploadResponse = await apiClient.post('/api/v1/videos/upload/initiate', {
         title,
         description,
         isPublic,
         tags: tags.split(',').map(t => t.trim()).filter(t => t)
       });
 
-      const { uploadUrl, videoId, uploadToken } = uploadResponse.data as any;
+      const { uploadUrl, videoId, uploadToken } = uploadResponse.data as {
+        uploadUrl: string;
+        videoId: string;
+        uploadToken: string;
+      };
 
       // For simplicity, we'll do a direct upload
       // In production, implement chunked uploads
@@ -78,7 +82,7 @@ export default function UploadPage() {
       });
 
       // Complete upload
-      await apiClient.post('/api/v1/video/upload/complete', {
+      await apiClient.post('/api/v1/videos/upload/complete', {
         videoId,
         uploadToken
       });

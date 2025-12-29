@@ -1,0 +1,45 @@
+========================================
+      DOCKER SETUP INSTRUCTIONS
+========================================
+
+Docker Desktop has been installed! Here's what to do:
+
+1. START DOCKER DESKTOP:
+   - Click Start Menu
+   - Search for "Docker Desktop"
+   - Click to open it
+   - Wait for it to fully start (you'll see the whale icon in system tray)
+
+2. VERIFY DOCKER IS RUNNING:
+   - Open a NEW terminal/command prompt
+   - Type: docker --version
+   - Type: docker info
+   - Both should show Docker is working
+
+3. RUN STREAMVAULT WITH DOCKER:
+   - Open command prompt in project folder
+   - Run: START-DOCKER-SETUP.bat
+   - Or manually run: docker-compose up -d
+
+4. ACCESS THE APPLICATION:
+   - Frontend: http://localhost:3001
+   - Backend API: http://localhost:5000
+   - MinIO Storage: http://localhost:9001
+
+5. WHAT DOCKER WILL RUN:
+   ✓ PostgreSQL Database (port 5432)
+   ✓ Redis Cache (port 6379)
+   ✓ MinIO File Storage (ports 9000, 9001)
+   ✓ ASP.NET Core Backend (port 5000)
+   ✓ Next.js Frontend (port 3001)
+
+6. TROUBLESHOOTING:
+   - If Docker won't start: Restart your computer after installation
+   - If ports are in use: docker-compose down first
+   - To rebuild: docker-compose build --no-cache
+   - To view logs: docker-compose logs -f
+
+7. TO STOP EVERYTHING:
+   docker-compose down
+
+========================================

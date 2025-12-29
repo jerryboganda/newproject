@@ -1,0 +1,45 @@
+========================================
+      PODMAN SETUP INSTRUCTIONS
+========================================
+
+Podman has been installed! Here's how to set it up:
+
+1. ADD PODMAN TO PATH (if needed):
+   - Open Command Prompt as Administrator
+   - Run: setx /M PATH "%PATH%;C:\Program Files\RedHat\Podman"
+   - Restart your terminal/IDE
+
+2. INITIALIZE PODMAN MACHINE:
+   podman machine init
+   podman machine start
+
+3. INSTALL PODMAN-COMPOSE:
+   - Download from: https://github.com/containers/podman-compose/releases
+   - Or run: pip install podman-compose
+
+4. RUN STREAMVAULT WITH PODMAN:
+   - Open PowerShell in project folder
+   - Run: .\Start-PodmanSetup.ps1
+   - Or manually: podman-compose -f podman-compose.yml up -d
+
+5. ACCESS THE APPLICATION:
+   - Frontend: http://localhost:3001
+   - Backend API: http://localhost:5000
+   - MinIO Console: http://localhost:9001
+
+6. PODMAN ADVANTAGES:
+   ✓ No hardware virtualization required
+   ✓ Runs as regular user processes
+   ✓ Compatible with Docker images
+   ✓ More secure by default
+
+7. TROUBLESHOOTING:
+   - If podman command not found: Restart terminal after PATH update
+   - If machine won't start: Run "podman machine rm" then "podman machine init"
+   - To rebuild: podman-compose build --no-cache
+   - To view logs: podman-compose logs -f
+
+8. TO STOP EVERYTHING:
+   podman-compose -f podman-compose.yml down
+
+========================================

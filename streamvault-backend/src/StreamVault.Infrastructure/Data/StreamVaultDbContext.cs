@@ -1,11 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using StreamVault.Application.Interfaces;
 using StreamVault.Domain.Entities;
 
 namespace StreamVault.Infrastructure.Data;
 
 public class StreamVaultDbContext : DbContext
 {
-    public StreamVaultDbContext(DbContextOptions<StreamVaultDbContext> options) : base(options) { }
+    private readonly ITenantContext? _tenantContext;
+
+    public StreamVaultDbContext(
+        DbContextOptions<StreamVaultDbContext> options,
+        ITenantContext? tenantContext = null) : base(options) 
+    { 
+        _tenantContext = tenantContext;
+    }
 
     // Master DB tables
     public DbSet<Tenant> Tenants { get; set; } = null!;
@@ -100,6 +109,12 @@ public class StreamVaultDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Apply tenant data isolation filters if tenant context is available
+        if (_tenantContext != null)
+        {
+            TenantDataIsolation.ApplyTenantFilters(modelBuilder, _tenantContext);
+        }
 
         // Configure composite keys for junction tables
         modelBuilder.Entity<UserRole>()
@@ -827,5 +842,16 @@ public class StreamVaultDbContext : DbContext
         modelBuilder.Entity<SubscriptionPlan>()
             .Property(sp => sp.Limits)
             .HasColumnType("jsonb");
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        // Add tenant interceptor if tenant context is available
+        if (_tenantContext != null)
+        {
+            optionsBuilder.AddInterceptors(new TenantInterceptor(_tenantContext));
+        }
     }
 }

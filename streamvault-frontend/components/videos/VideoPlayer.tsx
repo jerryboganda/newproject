@@ -81,7 +81,7 @@ export function VideoPlayer({
   const [isLoading, setIsLoading] = useState(false)
 
   // Auto-hide controls timer
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>()
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Handle play/pause
   const togglePlay = useCallback(() => {
@@ -481,30 +481,30 @@ export function VideoPlayer({
                     <Cog6ToothIcon className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Quality</DropdownMenuItem>
-                    <DropdownMenuItem>Speed</DropdownMenuItem>
-                    <DropdownMenuItem>Loop</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>Quality</DropdownMenuItem>
+                  <DropdownMenuItem>Speed</DropdownMenuItem>
+                  <DropdownMenuItem>Loop</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                {/* Fullscreen */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleFullscreen}
-                  className="text-white hover:bg-white hover:bg-opacity-20"
-                >
-                  {isFullscreen ? (
-                    <ArrowsPointingInIcon className="h-5 w-5" />
-                  ) : (
-                    <ArrowsPointingOutIcon className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
+              {/* Fullscreen */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleFullscreen}
+                className="text-white hover:bg-white hover:bg-opacity-20"
+              >
+                {isFullscreen ? (
+                  <ArrowsPointingInIcon className="h-5 w-5" />
+                ) : (
+                  <ArrowsPointingOutIcon className="h-5 w-5" />
+                )}
+              </Button>
             </div>
           </div>
-        )}
-      </div>
-    )
-  }
+        </div>
+      )}
+    </div>
+  )
+}

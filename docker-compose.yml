@@ -1,89 +1,295 @@
-version: "3.9"
+version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: streamvault-postgres
     environment:
+      POSTGRES_DB: streamvault
       POSTGRES_USER: streamvault
-      POSTGRES_PASSWORD: streamvault
-      POSTGRES_DB: streamvault_master
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your_secure_password_here}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+    networks:
+      - streamvault-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U streamvault -d streamvault_master"]
+      test: ["CMD-SHELL", "pg_isready -U streamvault"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    container_name: streamvault-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-your_redis_password_here}
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 5
 
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: streamvault-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: streamvault
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-your_rabbitmq_password_here}
+      RABBITMQ_DEFAULT_VHOST: streamvault
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  # MinIO Object Storage (S3-compatible)
   minio:
     image: minio/minio:latest
+    container_name: streamvault-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: streamvault
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-your_minio_password_here}
+    volumes:
+      - minio_data:/data
     ports:
       - "9000:9000"
       - "9001:9001"
-    volumes:
-      - minio-data:/data
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
+  # Backend API
   api:
     build:
       context: ./streamvault-backend
       dockerfile: Dockerfile
+    container_name: streamvault-api
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=streamvault_master;Username=streamvault;Password=streamvault"
-      REDIS_CONNECTION_STRING: "redis:6379"
-      JWT_ISSUER: "streamvault"
-      JWT_AUDIENCE: "streamvault"
-      JWT_SIGNING_KEY: "dev-signing-key-change"
-      SMTP_HOST: "mailhog"
-      SMTP_PORT: "1025"
-      STRIPE_SECRET_KEY: "sk_test_xxx"
-      STRIPE_WEBHOOK_SECRET: "whsec_xxx"
-      BUNNY_API_KEY: "change_me"
-      BUNNY_LIBRARY_ID: "change_me"
-      BUNNY_PULL_ZONE_ID: "change_me"
-      BUNNY_CDN_HOSTNAME: "cdn.example.com"
-      STORAGE_PROVIDER: "minio"
-      MINIO_ENDPOINT: "http://minio:9000"
-      MINIO_KEY: "minio"
-      MINIO_SECRET: "minio123"
-      MINIO_BUCKET: "streamvault"
-    depends_on:
-      - postgres
-      - redis
-      - minio
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=streamvault;Username=streamvault;Password=${POSTGRES_PASSWORD:-your_secure_password_here};
+      Redis__ConnectionString: streamvault-redis:6379,password=${REDIS_PASSWORD:-your_redis_password_here}
+      RabbitMQ__HostName: streamvault-rabbitmq
+      RabbitMQ__UserName: streamvault
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-your_rabbitmq_password_here}
+      RabbitMQ__VirtualHost: streamvault
+      MinIO__EndPoint: streamvault-minio:9000
+      MinIO__AccessKey: streamvault
+      MinIO__SecretKey: ${MINIO_PASSWORD:-your_minio_password_here}
+      Jwt__SecretKey: ${JWT_SECRET_KEY:-your_jwt_secret_key_here}
+      Jwt__Issuer: StreamVault
+      Jwt__Audience: StreamVault
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-your_stripe_secret_key}
+      Stripe__PublishableKey: ${STRIPE_PUBLISHABLE_KEY:-your_stripe_publishable_key}
+      SendGrid__ApiKey: ${SENDGRID_API_KEY:-your_sendgrid_api_key}
+      Email__FromEmail: ${EMAIL_FROM_EMAIL:-noreply@streamvault.app}
+      Email__FromName: StreamVault
+      Storage__Provider: MinIO
+      CDN__Provider: MinIO
+    volumes:
+      - api_uploads:/app/uploads
+      - api_logs:/app/logs
     ports:
-      - "5000:5000"
+      - "5000:80"
+      - "5001:443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Frontend Application
   frontend:
     build:
-      context: ./streamvault-frontend
-      args:
-        NEXT_PUBLIC_API_BASE_URL: "http://localhost:5000"
+      context: ./streamvault-admin-dashboard
+      dockerfile: Dockerfile
+    container_name: streamvault-frontend
     environment:
-      NEXT_PUBLIC_API_BASE_URL: "http://localhost:5000"
-      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXT_PUBLIC_WS_URL: ws://localhost:5000/ws
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-your_stripe_publishable_key}
+      NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN:-your_sentry_dsn}
+    ports:
+      - "3000:3000"
     depends_on:
       - api
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: streamvault-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: streamvault-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: streamvault-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     ports:
       - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    container_name: streamvault-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.0
+    container_name: streamvault-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://streamvault-elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+
+  # Logstash (optional - for log aggregation)
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.0
+    container_name: streamvault-logstash
+    volumes:
+      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - api_logs:/var/log/streamvault:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - streamvault-network
+    restart: unless-stopped
 
 volumes:
-  pgdata:
-  minio-data:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+  api_uploads:
+    driver: local
+  api_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  streamvault-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

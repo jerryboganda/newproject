@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Domain.Entities;
 
-public class VideoCategory
+public class VideoCategory : ITenantEntity
 {
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -31,6 +32,6 @@ public class VideoCategory
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Navigation properties
-    public Tenant Tenant { get; set; } = null!;
-    public ICollection<Video> Videos { get; set; } = new List<Video>();
+    public virtual Tenant Tenant { get; set; } = null!;
+    public virtual ICollection<Video> Videos { get; set; } = new List<Video>();
 }

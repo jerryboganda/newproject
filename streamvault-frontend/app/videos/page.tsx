@@ -43,8 +43,8 @@ export default function VideosPage() {
       if (filter === 'public') params.isPublic = true;
       if (filter === 'private') params.isPublic = false;
 
-      const response = await apiClient.get('/api/v1/video', { params });
-      setVideos((response.data as any).videos);
+      const response = await apiClient.get('/api/v1/videos', { params });
+      setVideos(response.data as Video[]);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch videos');
     } finally {

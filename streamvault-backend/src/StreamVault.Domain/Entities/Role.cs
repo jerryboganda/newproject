@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Domain.Entities;
 
-public class Role
+public class Role : ITenantEntity
 {
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -20,12 +21,12 @@ public class Role
 
     public bool IsSystemRole { get; set; } = false; // E.g., Admin, Editor, Viewer
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Navigation
-    public Tenant? Tenant { get; set; }
+    public virtual Tenant? Tenant { get; set; }
 
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-    public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+    public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }
