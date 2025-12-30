@@ -9,7 +9,7 @@ public class User : ITenantEntity
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public Guid? TenantId { get; set; } // Null for super admins
+    public Guid TenantId { get; set; }
 
     [Required, MaxLength(255), EmailAddress]
     public string Email { get; set; } = string.Empty;

@@ -17,7 +17,7 @@ public class SubscriptionTier
 
     public string Currency { get; set; } = "USD";
 
-    public BillingCycle BillingCycle { get; set; }
+    public SubscriptionBillingCycle BillingCycle { get; set; }
 
     public bool IsActive { get; set; } = true;
 
@@ -107,7 +107,7 @@ public class UserSubscription
 
     public string Currency { get; set; } = "USD";
 
-    public BillingCycle BillingCycle { get; set; }
+    public SubscriptionBillingCycle BillingCycle { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -118,7 +118,7 @@ public class UserSubscription
     public SubscriptionTier SubscriptionTier { get; set; } = null!;
 }
 
-public enum BillingCycle
+public enum SubscriptionBillingCycle
 {
     Monthly,
     Quarterly,

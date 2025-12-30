@@ -28,13 +28,28 @@ export const STREAMVAULT_API_BASE_URL =
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${STREAMVAULT_API_BASE_URL}${path}`
+  
+  // Get token from localStorage if available
+  let headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> ?? {}),
+  }
+  
+  // Add authorization header if token exists
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth-token")
+    if (token) {
+      headers = {
+        ...headers,
+        Authorization: `Bearer ${token}`,
+      }
+    }
+  }
+  
   const res = await fetch(url, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
   })
 

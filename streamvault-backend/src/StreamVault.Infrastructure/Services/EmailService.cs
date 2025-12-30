@@ -254,7 +254,7 @@ The StreamVault Team"
                             <h2>Password Reset Request</h2>
                             <p>Hello {{name}},</p>
                             <p>You requested to reset your password. Click the link below to reset it:</p>
-                            <p><a href="{{reset_url}}">Reset Password</a></p>
+                            <p><a href=""{{reset_url}}"">Reset Password</a></p>
                             <p>This link will expire in 24 hours.</p>
                             <p>If you didn't request this, please ignore this email.</p>
                             <p>Best regards,<br/>The StreamVault Team</p>
@@ -320,7 +320,7 @@ The StreamVault Team"
                             <h2>Video Processing Complete</h2>
                             <p>Hello {{name}},</p>
                             <p>Your video '{{video_title}}' has been successfully processed and is ready to view.</p>
-                            <p><a href="{{video_url}}">Watch Video</a></p>
+                            <p><a href=""{{video_url}}"">Watch Video</a></p>
                             <p>Video details:</p>
                             <ul>
                                 <li>Duration: {{video_duration}}</li>
@@ -343,7 +343,7 @@ Video details:
 
 Best regards,
 The StreamVault Team"
-                }
+                },
             };
         }
 

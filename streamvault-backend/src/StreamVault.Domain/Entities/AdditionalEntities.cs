@@ -28,22 +28,6 @@ namespace StreamVault.Domain.Entities
     }
 
     /// <summary>
-    /// Represents a playlist video relationship
-    /// </summary>
-    public class PlaylistVideo : ITenantEntity
-    {
-        public Guid PlaylistId { get; set; }
-        public Guid VideoId { get; set; }
-        public DateTime AddedAt { get; set; }
-        public int SortOrder { get; set; }
-        public Guid TenantId { get; set; }
-
-        // Navigation properties
-        public virtual Playlist Playlist { get; set; } = null!;
-        public virtual Video Video { get; set; } = null!;
-    }
-
-    /// <summary>
     /// Represents a video view
     /// </summary>
     public class VideoView : ITenantEntity
@@ -63,26 +47,6 @@ namespace StreamVault.Domain.Entities
     }
 
     /// <summary>
-    /// Represents a video tag
-    /// </summary>
-    public class VideoTag : ITenantEntity
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Slug { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? Color { get; set; }
-        public int SortOrder { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public Guid TenantId { get; set; }
-
-        // Navigation properties
-        public virtual ICollection<VideoVideoTag> VideoTags { get; set; } = new List<VideoVideoTag>();
-    }
-
-    /// <summary>
     /// Represents a video tag relationship
     /// </summary>
     public class VideoVideoTag : ITenantEntity
@@ -95,28 +59,6 @@ namespace StreamVault.Domain.Entities
         // Navigation properties
         public virtual Video Video { get; set; } = null!;
         public virtual VideoTag Tag { get; set; } = null!;
-    }
-
-    /// <summary>
-    /// Represents a video comment
-    /// </summary>
-    public class Comment : ITenantEntity
-    {
-        public Guid Id { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public Guid VideoId { get; set; }
-        public Guid UserId { get; set; }
-        public Guid? ParentId { get; set; }
-        public bool IsDeleted { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public Guid TenantId { get; set; }
-
-        // Navigation properties
-        public virtual Video Video { get; set; } = null!;
-        public virtual User User { get; set; } = null!;
-        public virtual Comment? Parent { get; set; }
-        public virtual ICollection<Comment> Replies { get; set; } = new List<Comment>();
     }
 
     /// <summary>
@@ -133,7 +75,7 @@ namespace StreamVault.Domain.Entities
         public virtual Video Video { get; set; } = null!;
         public virtual User User { get; set; } = null!;
     }
-}
+
     /// <summary>
     /// Represents a tenant invoice
     /// </summary>
@@ -185,26 +127,6 @@ namespace StreamVault.Domain.Entities
         public string? IpAddress { get; set; }
         public string? UserAgent { get; set; }
         public DateTime CreatedAt { get; set; }
-        public Guid TenantId { get; set; }
-
-        // Navigation properties
-        public virtual User User { get; set; } = null!;
-    }
-
-    /// <summary>
-    /// Represents a notification
-    /// </summary>
-    public class Notification : ITenantEntity
-    {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public string? ActionUrl { get; set; }
-        public bool IsRead { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? ReadAt { get; set; }
         public Guid TenantId { get; set; }
 
         // Navigation properties

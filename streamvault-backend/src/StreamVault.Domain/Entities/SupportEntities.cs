@@ -44,7 +44,7 @@ namespace StreamVault.Domain.Entities
     public class KnowledgeBaseArticle : ITenantEntity
     {
         public Guid Id { get; set; }
-        public Guid? TenantId { get; set; }
+        public Guid TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public string Title { get; set; } = null!;
         public string Content { get; set; } = null!;
@@ -65,7 +65,7 @@ namespace StreamVault.Domain.Entities
     public class CannedResponse : ITenantEntity
     {
         public Guid Id { get; set; }
-        public Guid? TenantId { get; set; }
+        public Guid TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public string Name { get; set; } = null!;
         public string Content { get; set; } = null!;
@@ -134,26 +134,6 @@ namespace StreamVault.Domain.Entities
         public bool IsActive { get; set; }
         public DateTime StartsAt { get; set; }
         public DateTime? ExpiresAt { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-    }
-
-    public class SubscriptionPlan
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = null!;
-        public string? Description { get; set; }
-        public decimal Price { get; set; }
-        public string Currency { get; set; } = "USD";
-        public BillingInterval BillingInterval { get; set; }
-        public string StripePriceId { get; set; } = null!;
-        public List<string> Features { get; set; } = new();
-        public PlanLimits Limits { get; set; } = new();
-        public PlanOverageRates OverageRates { get; set; } = new();
-        public bool IsActive { get; set; }
-        public bool IsPublic { get; set; }
-        public int? TrialPeriodDays { get; set; }
-        public int SortOrder { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
@@ -275,15 +255,6 @@ namespace StreamVault.Domain.Entities
         High,
         Critical,
         Urgent
-    }
-
-    public enum NotificationType
-    {
-        Info,
-        Warning,
-        Error,
-        Success,
-        Maintenance
     }
 
     public enum BillingInterval

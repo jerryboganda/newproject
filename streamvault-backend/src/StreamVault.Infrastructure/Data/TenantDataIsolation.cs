@@ -1,11 +1,14 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
 using StreamVault.Application.Interfaces;
 using StreamVault.Domain.Entities;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Infrastructure.Data
 {
@@ -21,27 +24,19 @@ namespace StreamVault.Infrastructure.Data
         {
             // Get all entity types that have TenantId property
             var entityTypes = modelBuilder.Model.GetEntityTypes()
-                .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType));
+                .Where(e => typeof(StreamVault.Domain.Interfaces.ITenantEntity).IsAssignableFrom(e.ClrType));
 
             foreach (var entityType in entityTypes)
             {
                 var parameter = Expression.Parameter(entityType.ClrType, "e");
                 var tenantIdProperty = Expression.Property(parameter, nameof(ITenantEntity.TenantId));
-                var currentTenantId = Expression.Constant(tenantContext.TenantId, typeof(Guid?));
+                var currentTenantId = Expression.Constant(tenantContext.TenantId ?? Guid.Empty, typeof(Guid));
                 var filterExpression = Expression.Equal(tenantIdProperty, currentTenantId);
 
                 var lambda = Expression.Lambda(filterExpression, parameter);
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
-    }
-
-    /// <summary>
-    /// Interface for entities that belong to a tenant
-    /// </summary>
-    public interface ITenantEntity
-    {
-        Guid TenantId { get; set; }
     }
 
     /// <summary>

@@ -46,7 +46,7 @@ interface AuthActions {
   clearAuth: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
@@ -93,9 +93,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             throw new Error(data.error || "Login failed");
           }
 
-          const { accessToken, refreshToken, user } = data;
-          get().setTokens(accessToken, refreshToken);
-          get().setUser(user);
+          const { token, user } = data;
+          
+          // Save token to localStorage
+          if (typeof window !== "undefined") {
+            localStorage.setItem("auth-token", token);
+          }
+          
+          set({ accessToken: token, isAuthenticated: true, user });
         } catch (error) {
           console.error("Login error:", error);
           throw error;
@@ -162,6 +167,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch (error) {
           console.error("Logout error:", error);
         } finally {
+          // Remove token from localStorage
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("auth-token");
+          }
           get().clearAuth();
         }
       },

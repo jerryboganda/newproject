@@ -6,18 +6,18 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy csproj files and restore dependencies for better caching
-COPY ["src/StreamVault.API/StreamVault.API.csproj", "src/StreamVault.API/"]
+COPY ["src/StreamVault.Api/StreamVault.Api.csproj", "src/StreamVault.Api/"]
 COPY ["src/StreamVault.Application/StreamVault.Application.csproj", "src/StreamVault.Application/"]
 COPY ["src/StreamVault.Domain/StreamVault.Domain.csproj", "src/StreamVault.Domain/"]
 COPY ["src/StreamVault.Infrastructure/StreamVault.Infrastructure.csproj", "src/StreamVault.Infrastructure/"]
-RUN dotnet restore "src/StreamVault.API/StreamVault.API.csproj"
+RUN dotnet restore "src/StreamVault.Api/StreamVault.Api.csproj"
 
 # Copy the rest of the source code
 COPY . .
 
 # Build and publish with optimizations
-WORKDIR "/src/src/StreamVault.API"
-RUN dotnet publish "StreamVault.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+WORKDIR "/src/src/StreamVault.Api"
+RUN dotnet publish "StreamVault.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
@@ -56,4 +56,4 @@ ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80
 EXPOSE 443
 
-ENTRYPOINT ["dotnet", "StreamVault.API.dll"]
+ENTRYPOINT ["dotnet", "StreamVault.Api.dll"]
