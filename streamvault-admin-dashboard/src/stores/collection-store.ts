@@ -8,12 +8,6 @@ interface Collection {
   videoCount: number;
   createdAt: string;
   updatedAt: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatarUrl?: string;
-  };
 }
 
 interface CollectionState {
@@ -35,7 +29,18 @@ interface CollectionActions {
   clearError: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+function apiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, "");
+}
+
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth-token");
+}
+
+function getTenantSlug(): string {
+  return "demo";
+}
 
 export const useCollectionStore = create<CollectionState & CollectionActions>((set, get) => ({
   // State
@@ -48,9 +53,11 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   fetchCollections: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -66,9 +73,11 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   fetchCollection: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -84,11 +93,13 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   createCollection: async (name: string, description?: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
         body: JSON.stringify({ name, description }),
       });
@@ -109,11 +120,13 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   updateCollection: async (id: string, data: Partial<Collection>) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
         body: JSON.stringify(data),
       });
@@ -135,10 +148,12 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   deleteCollection: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -157,11 +172,13 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   addVideoToCollection: async (collectionId: string, videoId: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${collectionId}/videos`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${collectionId}/videos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
         body: JSON.stringify({ videoId }),
       });
@@ -179,10 +196,12 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   removeVideoFromCollection: async (collectionId: string, videoId: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${collectionId}/videos/${videoId}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${collectionId}/videos/${videoId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -199,11 +218,13 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
   reorderVideos: async (collectionId: string, videoOrders: { videoId: string; order: number }[]) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/collections/${collectionId}/videos/reorder`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/collections/${collectionId}/videos/reorder`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
         body: JSON.stringify({ videoOrders }),
       });

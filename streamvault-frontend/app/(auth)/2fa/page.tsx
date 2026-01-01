@@ -163,7 +163,7 @@ export default function TwoFactorPage() {
             onClick={handleResend}
             className="w-full text-sm text-blue-600 hover:text-blue-500"
           >
-            Didn't receive a code? Resend
+            Didn&apos;t receive a code? Resend
           </button>
         </div>
       </form>
@@ -173,7 +173,7 @@ export default function TwoFactorPage() {
           Having trouble?
         </h3>
         <ul className="text-xs text-gray-600 space-y-1">
-          <li>• Make sure your device's time is synced</li>
+          <li>• Make sure your device&apos;s time is synced</li>
           <li>• Try generating a new code in your authenticator app</li>
           <li>• Contact support if the issue persists</li>
         </ul>

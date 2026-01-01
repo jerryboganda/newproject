@@ -21,26 +21,9 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
       return;
     }
 
-    // Validate token with the server
-    fetch("http://localhost:5001/api/v1/user/profile", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (res.ok) {
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem("auth-token");
-          router.push("/auth/login");
-        }
-      })
-      .catch(() => {
-        router.push("/auth/login");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    // Backend profile endpoints are not wired up yet; rely on presence of token.
+    setIsAuthenticated(true);
+    setIsLoading(false);
   }, [router]);
 
   if (isLoading) {

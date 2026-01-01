@@ -29,8 +29,8 @@ export default function TwoFactorPage() {
     setError("");
 
     try {
-      const result = await enable2FA();
-      setSecretKey(result.secretKey || "JBSWY3DPEHPK3PXP"); // Mock secret key
+      await enable2FA();
+      setSecretKey("JBSWY3DPEHPK3PXP"); // Mock secret key
       setIsSetup(true);
     } catch (err: any) {
       setError(err.message || "Failed to setup 2FA");

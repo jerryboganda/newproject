@@ -7,17 +7,19 @@ import { apiClient } from '@/lib/api-client';
 interface Video {
   id: string;
   title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  videoUrl: string;
-  durationSeconds: number;
+  description?: string | null;
+  thumbnailUrl?: string | null;
   viewCount: number;
+  isPublic: boolean;
+  status: string;
   createdAt: string;
-  user: {
-    firstName: string;
-    lastName: string;
-  };
-  tags: string[];
+}
+
+interface VideoListResponse {
+  items: Video[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
 export default function VideosPage() {
@@ -34,33 +36,22 @@ export default function VideosPage() {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const params: any = {
-        search,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      };
+      const response = await apiClient.get<VideoListResponse>('/api/v1/videos', {
+        params: { page: 1, pageSize: 200 }
+      });
 
-      if (filter === 'public') params.isPublic = true;
-      if (filter === 'private') params.isPublic = false;
+      const q = search.trim().toLowerCase();
+      let items = response.items;
+      if (q) items = items.filter(v => (v.title || '').toLowerCase().includes(q));
+      if (filter === 'public') items = items.filter(v => v.isPublic);
+      if (filter === 'private') items = items.filter(v => !v.isPublic);
 
-      const response = await apiClient.get('/api/v1/videos', { params });
-      setVideos(response.data as Video[]);
+      setVideos(items);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch videos');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -166,33 +157,16 @@ export default function VideosPage() {
                     </div>
                   )}
                   <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-                    {formatDuration(video.durationSeconds)}
+                    {video.isPublic ? 'Public' : 'Private'}
                   </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 truncate mb-1">{video.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {video.user.firstName} {video.user.lastName}
-                  </p>
+                  <p className="text-sm text-gray-600 mb-2">Status: {video.status}</p>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>{video.viewCount} views</span>
                     <span>{formatDate(video.createdAt)}</span>
                   </div>
-                  {video.tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {video.tags.slice(0, 3).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {video.tags.length > 3 && (
-                        <span className="text-xs text-gray-500">+{video.tags.length - 3}</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </Link>
             ))}

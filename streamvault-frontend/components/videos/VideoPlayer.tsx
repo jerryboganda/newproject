@@ -16,7 +16,7 @@ import {
   SpeakerXMarkIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
-  ClosedCaptionIcon,
+  ChatBubbleBottomCenterTextIcon,
   QueueListIcon,
   Cog6ToothIcon,
   ForwardIcon,
@@ -398,7 +398,7 @@ export function VideoPlayer({
                       size="sm"
                       className="text-white hover:bg-white hover:bg-opacity-20"
                     >
-                      <ClosedCaptionIcon className="h-5 w-5" />
+                      <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

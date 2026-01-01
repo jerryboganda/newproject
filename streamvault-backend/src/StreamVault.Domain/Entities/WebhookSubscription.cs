@@ -8,6 +8,7 @@ public class WebhookSubscription : ITenantEntity
     public Guid TenantId { get; set; }
     public string Url { get; set; } = string.Empty;
     public string[] Events { get; set; } = Array.Empty<string>();
+    public string SigningSecret { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

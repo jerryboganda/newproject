@@ -7,8 +7,12 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="TusDotNet" Version="2.11.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +23,39 @@
 
   <ItemGroup>
     <Compile Include="Program.cs" />
-    <Compile Include="Controllers\**\*.cs" />
+    <Compile Include="Auth\ApiKeyAuthenticationHandler.cs" />
+    <Compile Include="Controllers\HealthController.cs" />
+    <Compile Include="Controllers\AuthController.Minimal.cs" />
+    <Compile Include="Controllers\AdminTenantsController.cs" />
+    <Compile Include="Controllers\AdminAnalyticsController.cs" />
+    <Compile Include="Controllers\AdminImpersonationController.cs" />
+    <Compile Include="Controllers\AdminSystemSettingsController.cs" />
+    <Compile Include="Controllers\AdminEmailTemplatesController.cs" />
+    <Compile Include="Controllers\AdminAuditLogsController.cs" />
+    <Compile Include="Controllers\ApiKeysController.cs" />
+    <Compile Include="Controllers\WebhooksController.cs" />
+    <Compile Include="Controllers\WebhookSubscriptionsController.cs" />
+    <Compile Include="Controllers\VideosController.cs" />
+    <Compile Include="Controllers\CollectionsController.cs" />
+    <Compile Include="Controllers\BillingController.cs" />
+    <Compile Include="Controllers\StripeWebhooksController.cs" />
+    <Compile Include="Controllers\AnalyticsController.cs" />
+    <Compile Include="Controllers\SupportTicketsController.cs" />
+    <Compile Include="Controllers\SupportDepartmentsController.cs" />
+    <Compile Include="Controllers\SupportSlaPoliciesController.cs" />
+    <Compile Include="Controllers\SupportEscalationRulesController.cs" />
+    <Compile Include="Controllers\SupportAgentsController.cs" />
+    <Compile Include="Controllers\SupportCannedResponsesController.cs" />
+    <Compile Include="Controllers\KnowledgeBaseController.cs" />
+    <Compile Include="Jobs\UsageSyncJob.cs" />
+    <Compile Include="Jobs\MonthlyOverageInvoiceJob.cs" />
+    <Compile Include="Jobs\AnalyticsRollupJob.cs" />
+    <Compile Include="Jobs\SupportSlaEscalationJob.cs" />
+    <Compile Include="Jobs\WebhookDeliveryJob.cs" />
+    <Compile Include="Middleware\ApiKeyScopeEnforcementMiddleware.cs" />
+    <Compile Include="Services\AuditLogger.cs" />
+    <Compile Include="Services\WebhookPublisher.cs" />
+    <Compile Include="Hubs\LiveAnalyticsHub.cs" />
+    <Compile Include="Hubs\SupportHub.cs" />
   </ItemGroup>
 </Project>

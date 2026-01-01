@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using StreamVault.Infrastructure.Data;
 using StreamVault.Application.Interfaces;
+using StreamVault.Application.Auth;
 using StreamVault.Application.Services;
 using StreamVault.Application.Repositories;
 using StreamVault.Api.Middleware;
@@ -36,7 +37,7 @@ builder.Services.AddScoped<ITenantResolver, TenantResolver>();
 
 // Register authentication services
 builder.Services.AddSingleton<ITokenService, TokenService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthService, StreamVault.Infrastructure.Services.AuthService>();
 
 // Add database with multi-tenancy support
 builder.Services.AddDbContext<StreamVaultDbContext>((serviceProvider, options) =>
@@ -64,20 +65,7 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 // Register core infrastructure services
 builder.Services.AddHttpClient<BunnyCDNService>();
 builder.Services.AddSingleton<StripeService>();
-builder.Services.AddSingleton<IEmailService>(provider =>
-{
-    var configuration = provider.GetRequiredService<IConfiguration>();
-    var logger = provider.GetRequiredService<ILogger<SendGridEmailService>>();
-    
-    // Choose email provider based on configuration
-    var provider = configuration["Email:Provider"]?.ToLowerInvariant();
-    
-    return provider switch
-    {
-        "smtp" => new SmtpEmailService(configuration, logger),
-        _ => new SendGridEmailService(configuration, logger)
-    };
-});
+builder.Services.AddSingleton<StreamVault.Application.Services.IEmailService, StreamVault.Application.Services.EmailService>();
 builder.Services.AddSingleton<IFileStorageService>(provider =>
 {
     var configuration = provider.GetRequiredService<IConfiguration>();

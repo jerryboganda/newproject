@@ -29,6 +29,7 @@ import {
 import { useDropzone } from "react-dropzone";
 import { useVideoStore } from "@/stores/video-store";
 import { useCollectionStore } from "@/stores/collection-store";
+import * as tus from "tus-js-client";
 
 interface UploadFile {
   file: File;
@@ -86,12 +87,19 @@ export default function EnhancedUploadPage() {
     try {
       updateFileData(fileData.id, { status: "uploading", progress: 0 });
 
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, "");
+      const token = localStorage.getItem("auth-token");
+      if (!token) throw new Error("Not authenticated");
+
+      const apiOrigin = apiBase.endsWith("/api/v1") ? apiBase.slice(0, -"/api/v1".length) : apiBase;
+
       // Initiate upload
-      const initiation = await fetch("/api/videos/upload/initiate", {
+      const initiation = await fetch(`${apiBase}/videos/upload/initiate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${token}`,
+          "X-Tenant-Slug": "demo",
         },
         body: JSON.stringify({
           title: fileData.title || fileData.file.name,
@@ -104,41 +112,33 @@ export default function EnhancedUploadPage() {
       const initiationData = await initiation.json();
       if (!initiation.ok) throw new Error(initiationData.error);
 
-      // Upload file with progress simulation
-      const formData = new FormData();
-      formData.append("file", fileData.file);
+      const tusEndpoint = `${apiOrigin}${initiationData.tusEndpoint}`;
 
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.addEventListener("progress", (e) => {
-        if (e.lengthComputable) {
-          const progress = Math.round((e.loaded / e.total) * 100);
-          updateFileData(fileData.id, { progress });
-        }
-      });
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(fileData.file, {
+          endpoint: tusEndpoint,
+          metadata: initiationData.uploadMetadata || {
+            videoId: initiationData.videoId,
+            fileName: fileData.file.name,
+            contentType: fileData.file.type,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Tenant-Slug": "demo",
+          },
+          onError: (err) => {
+            reject(err);
+          },
+          onProgress: (bytesUploaded, bytesTotal) => {
+            const progress = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0;
+            updateFileData(fileData.id, { progress });
+          },
+          onSuccess: () => {
+            resolve();
+          },
+        });
 
-      await new Promise((resolve, reject) => {
-        xhr.onload = resolve;
-        xhr.onerror = reject;
-        xhr.open("POST", `/api/videos/${initiationData.videoId}/upload`);
-        xhr.setRequestHeader(
-          "Authorization",
-          `Bearer ${localStorage.getItem("accessToken")}`
-        );
-        xhr.send(formData);
-      });
-
-      // Complete upload
-      await fetch(`/api/videos/${initiationData.videoId}/upload/complete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          fileSize: fileData.file.size,
-          storagePath: initiationData.storageUrl,
-        }),
+        upload.start();
       });
 
       updateFileData(fileData.id, {

@@ -13,6 +13,11 @@ namespace StreamVault.Domain.Entities
         public User User { get; set; } = null!;
         public Guid? AssignedToId { get; set; }
         public User? AssignedTo { get; set; }
+        public string TicketNumber { get; set; } = null!;
+        public Guid DepartmentId { get; set; }
+        public SupportDepartment Department { get; set; } = null!;
+        public Guid? SlaPolicyId { get; set; }
+        public SupportSlaPolicy? SlaPolicy { get; set; }
         public string Subject { get; set; } = null!;
         public string Description { get; set; } = null!;
         public TicketCategory Category { get; set; }
@@ -20,11 +25,15 @@ namespace StreamVault.Domain.Entities
         public TicketStatus Status { get; set; }
         public string? Resolution { get; set; }
         public string? EscalationReason { get; set; }
+        public DateTime? FirstResponseAt { get; set; }
+        public DateTime? FirstResponseDueAt { get; set; }
+        public DateTime? ResolutionDueAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? ClosedAt { get; set; }
         public DateTime? EscalatedAt { get; set; }
         public List<SupportTicketReply> Replies { get; set; } = new();
+        public List<SupportTicketActivity> Activities { get; set; } = new();
     }
 
     public class SupportTicketReply : ITenantEntity
@@ -41,17 +50,91 @@ namespace StreamVault.Domain.Entities
         public DateTime CreatedAt { get; set; }
     }
 
+    public class SupportTicketActivity : ITenantEntity
+    {
+        public Guid Id { get; set; }
+        public Guid TicketId { get; set; }
+        public SupportTicket Ticket { get; set; } = null!;
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+        public SupportTicketActivityType Type { get; set; }
+        public string Message { get; set; } = null!;
+        public string? MetadataJson { get; set; }
+        public Guid? CreatedByUserId { get; set; }
+        public User? CreatedByUser { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class SupportDepartment : ITenantEntity
+    {
+        public Guid Id { get; set; }
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+        public string Name { get; set; } = null!;
+        public string Slug { get; set; } = null!;
+        public bool IsActive { get; set; }
+        public Guid? DefaultSlaPolicyId { get; set; }
+        public SupportSlaPolicy? DefaultSlaPolicy { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class SupportSlaPolicy : ITenantEntity
+    {
+        public Guid Id { get; set; }
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+        public string Name { get; set; } = null!;
+        public int FirstResponseMinutes { get; set; }
+        public int ResolutionMinutes { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class SupportEscalationRule : ITenantEntity
+    {
+        public Guid Id { get; set; }
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+        public string Name { get; set; } = null!;
+        public SupportEscalationTrigger Trigger { get; set; }
+        public int ThresholdMinutes { get; set; }
+        public TicketPriority EscalateToPriority { get; set; }
+        public bool SetStatusToEscalated { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class KnowledgeBaseCategory : ITenantEntity
+    {
+        public Guid Id { get; set; }
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
+        public string Name { get; set; } = null!;
+        public string Slug { get; set; } = null!;
+        public string? Description { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
     public class KnowledgeBaseArticle : ITenantEntity
     {
         public Guid Id { get; set; }
         public Guid TenantId { get; set; }
-        public Tenant? Tenant { get; set; }
+        public Tenant Tenant { get; set; } = null!;
         public string Title { get; set; } = null!;
+        public string Slug { get; set; } = null!;
         public string Content { get; set; } = null!;
         public string? Summary { get; set; }
-        public string Category { get; set; } = null!;
+        public Guid CategoryId { get; set; }
+        public KnowledgeBaseCategory Category { get; set; } = null!;
         public List<string> Tags { get; set; } = new();
         public bool IsPublished { get; set; }
+        public DateTime? PublishedAt { get; set; }
         public int Views { get; set; }
         public int HelpfulVotes { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -255,6 +338,22 @@ namespace StreamVault.Domain.Entities
         High,
         Critical,
         Urgent
+    }
+
+    public enum SupportTicketActivityType
+    {
+        Created,
+        StatusChanged,
+        Assigned,
+        ReplyAdded,
+        SlaBreached,
+        Escalated
+    }
+
+    public enum SupportEscalationTrigger
+    {
+        FirstResponseOverdue,
+        ResolutionOverdue
     }
 
     public enum BillingInterval

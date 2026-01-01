@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
         }
       });
 
-      setAnalytics(response.data as any);
+      setAnalytics(response as TenantAnalytics);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch analytics');
     } finally {

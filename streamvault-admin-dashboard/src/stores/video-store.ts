@@ -55,7 +55,20 @@ interface VideoActions {
   clearError: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth-token");
+}
+
+function getTenantSlug(): string {
+  return "demo";
+}
+
+function apiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, "");
+}
 
 export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
   // State
@@ -83,9 +96,11 @@ export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/videos?${params}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/videos?${params}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -108,9 +123,11 @@ export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
   fetchVideo: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/videos/${id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -124,50 +141,46 @@ export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
   },
 
   uploadVideo: async (file: File, title: string, description?: string) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("title", title);
-      if (description) formData.append("description", description);
+    // Deprecated by TUS flow (use /videos/upload/initiate + tus uploads).
+    // Kept for API compatibility in older UI paths.
+    const token = getAuthToken();
+    const response = await fetch(`${apiBase()}/videos/upload/initiate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "X-Tenant-Slug": getTenantSlug(),
+      },
+      body: JSON.stringify({
+        title,
+        description,
+        fileName: file.name,
+        contentType: file.type,
+      }),
+    });
 
-      const response = await fetch(`${API_BASE_URL}/videos/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to upload video");
-
-      return await response.json();
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Upload failed" });
-      throw error;
-    }
+    if (!response.ok) throw new Error("Failed to initiate upload");
+    return await response.json();
   },
 
   updateVideo: async (id: string, data: Partial<Video>) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/videos/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) throw new Error("Failed to update video");
 
-      const updatedVideo = await response.json();
-      
-      set((state) => ({
-        videos: state.videos.map((v) => (v.id === id ? updatedVideo : v)),
-        currentVideo: state.currentVideo?.id === id ? updatedVideo : state.currentVideo,
-        loading: false,
-      }));
+      await get().fetchVideo(id);
+      set({ loading: false });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : "Update failed", loading: false });
     }
@@ -176,10 +189,12 @@ export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
   deleteVideo: async (id: string) => {
     set({ loading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/videos/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 
@@ -197,9 +212,11 @@ export const useVideoStore = create<VideoState & VideoActions>((set, get) => ({
 
   getVideoStatus: async (id: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/videos/${id}/status`, {
+      const token = getAuthToken();
+      const response = await fetch(`${apiBase()}/videos/${id}/status`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "X-Tenant-Slug": getTenantSlug(),
         },
       });
 

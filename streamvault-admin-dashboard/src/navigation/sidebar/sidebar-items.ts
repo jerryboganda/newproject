@@ -4,7 +4,9 @@ import {
   Upload,
   Users,
   Video,
+  BarChart3,
   SquareArrowUpRight,
+  CreditCard,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -48,6 +50,11 @@ export const sidebarItems: NavGroup[] = [
         icon: Video,
       },
       {
+        title: "Analytics",
+        url: "/dashboard/analytics",
+        icon: BarChart3,
+      },
+      {
         title: "Upload",
         url: "/dashboard/upload",
         icon: Upload,
@@ -63,6 +70,11 @@ export const sidebarItems: NavGroup[] = [
     id: 2,
     label: "Admin",
     items: [
+      {
+        title: "Billing",
+        url: "/dashboard/billing",
+        icon: CreditCard,
+      },
       {
         title: "Settings",
         url: "/dashboard/settings",

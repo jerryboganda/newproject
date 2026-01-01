@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using StreamVault.Application.Interfaces;
 using StreamVault.Domain.Entities;
+using System.Text.Json;
+using System.Reflection;
 
 namespace StreamVault.Infrastructure.Data;
 
@@ -24,6 +26,18 @@ public class StreamVaultDbContext : DbContext
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
 
     public DbSet<TenantSubscription> TenantSubscriptions { get; set; } = null!;
+
+    public DbSet<UsageMultiplier> UsageMultipliers { get; set; } = null!;
+
+    public DbSet<TenantBillingAccount> TenantBillingAccounts { get; set; } = null!;
+
+    public DbSet<TenantUsageSnapshot> TenantUsageSnapshots { get; set; } = null!;
+
+    public DbSet<TenantUsageMultiplierOverride> TenantUsageMultiplierOverrides { get; set; } = null!;
+
+    public DbSet<ManualPayment> ManualPayments { get; set; } = null!;
+
+    public DbSet<TenantBillingPeriodInvoice> TenantBillingPeriodInvoices { get; set; } = null!;
 
     public DbSet<User> Users { get; set; } = null!;
 
@@ -72,6 +86,12 @@ public class StreamVaultDbContext : DbContext
 
     public DbSet<VideoAnalyticsSummary> VideoAnalyticsSummaries { get; set; } = null!;
 
+    public DbSet<VideoAnalyticsHourlyAggregate> VideoAnalyticsHourlyAggregates { get; set; } = null!;
+
+    public DbSet<VideoAnalyticsDailyAggregate> VideoAnalyticsDailyAggregates { get; set; } = null!;
+
+    public DbSet<VideoAnalyticsDailyCountryAggregate> VideoAnalyticsDailyCountryAggregates { get; set; } = null!;
+
     public DbSet<VideoSEO> VideoSEOs { get; set; } = null!;
 
     public DbSet<VideoSearchKeyword> VideoSearchKeywords { get; set; } = null!;
@@ -106,12 +126,326 @@ public class StreamVaultDbContext : DbContext
     // Sharing
     public DbSet<VideoShare> VideoShares { get; set; } = null!;
 
+    // Support & Knowledge Base
+    public DbSet<SupportDepartment> SupportDepartments { get; set; } = null!;
+
+    public DbSet<SupportSlaPolicy> SupportSlaPolicies { get; set; } = null!;
+
+    public DbSet<SupportEscalationRule> SupportEscalationRules { get; set; } = null!;
+
+    public DbSet<SupportTicket> SupportTickets { get; set; } = null!;
+
+    public DbSet<SupportTicketReply> SupportTicketReplies { get; set; } = null!;
+
+    public DbSet<SupportTicketActivity> SupportTicketActivities { get; set; } = null!;
+
+    public DbSet<KnowledgeBaseCategory> KnowledgeBaseCategories { get; set; } = null!;
+
+    public DbSet<KnowledgeBaseArticle> KnowledgeBaseArticles { get; set; } = null!;
+
+    public DbSet<CannedResponse> CannedResponses { get; set; } = null!;
+
+    // Phase 6: API keys, audit, webhooks, email templates
+    public DbSet<ApiKey> ApiKeys { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<WebhookSubscription> WebhookSubscriptions { get; set; } = null!;
+    public DbSet<WebhookDelivery> WebhookDeliveries { get; set; } = null!;
+    public DbSet<EmailTemplate> EmailTemplates { get; set; } = null!;
+
+    // Platform-level admin settings
+    public DbSet<SystemSettings> SystemSettings { get; set; } = null!;
+    public DbSet<SystemNotification> SystemNotifications { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply tenant data isolation filters if tenant context is available
-        if (_tenantContext != null)
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        // Avoid mapping arbitrary Dictionary<string, object> properties by default.
+        // These are not required for the minimal auth/tenant flows and can cause model validation failures.
+        modelBuilder.Entity<UsageMultiplier>().Ignore(x => x.Conditions);
+        modelBuilder.Entity<PlatformConfiguration>().Ignore(x => x.Settings);
+        modelBuilder.Entity<FeatureFlag>().Ignore(x => x.Conditions);
+
+        // Platform settings mappings
+        modelBuilder.Entity<SystemSettings>(b =>
+        {
+            b.ToTable("SystemSettings");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.MaintenanceMessage).HasMaxLength(2000);
+            b.Property(x => x.SupportedVideoFormats).HasColumnType("text[]");
+            b.Ignore(x => x.Settings);
+        });
+
+        modelBuilder.Entity<SystemNotification>(b =>
+        {
+            b.ToTable("SystemNotifications");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Title).HasMaxLength(200);
+            b.Property(x => x.Message).HasMaxLength(5000);
+            b.Property(x => x.TargetRole).HasMaxLength(100);
+        });
+
+        // The current migrations in this workspace are not fully aligned with all Domain properties.
+        // Ignore Tenant fields that are not present in the active database schema to keep seeding working.
+        modelBuilder.Entity<Tenant>().Ignore(x => x.Description);
+
+        // Support & KB mappings
+        modelBuilder.Entity<SupportDepartment>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.Slug).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<SupportSlaPolicy>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.Name });
+            b.Property(x => x.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<SupportEscalationRule>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.IsActive });
+            b.Property(x => x.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<SupportTicket>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.CreatedAt });
+            b.HasIndex(x => new { x.TenantId, x.Status });
+            b.HasIndex(x => new { x.TenantId, x.TicketNumber }).IsUnique();
+            b.Property(x => x.TicketNumber).HasMaxLength(40);
+
+            b.HasOne(x => x.Department)
+                .WithMany()
+                .HasForeignKey(x => x.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.SlaPolicy)
+                .WithMany()
+                .HasForeignKey(x => x.SlaPolicyId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SupportTicketReply>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.TicketId, x.CreatedAt });
+            b.Property(x => x.Content).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<SupportTicketActivity>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.TicketId, x.CreatedAt });
+            b.Property(x => x.Message).HasColumnType("text");
+            b.Property(x => x.MetadataJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<KnowledgeBaseCategory>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.SortOrder });
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.Slug).HasMaxLength(200);
+            b.Property(x => x.Description).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<KnowledgeBaseArticle>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            b.HasIndex(x => new { x.TenantId, x.CategoryId, x.IsPublished });
+            b.Property(x => x.Title).HasMaxLength(300);
+            b.Property(x => x.Slug).HasMaxLength(300);
+            b.Property(x => x.Content).HasColumnType("text");
+            b.Property(x => x.Summary).HasColumnType("text");
+            b.Property(x => x.Tags).HasColumnType("text[]");
+        });
+
+        modelBuilder.Entity<CannedResponse>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.IsActive });
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.Category).HasMaxLength(200);
+            b.Property(x => x.Content).HasColumnType("text");
+            b.Property(x => x.Shortcuts).HasColumnType("text[]");
+        });
+
+        modelBuilder.Entity<ApiKey>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.KeyPrefix });
+            b.HasIndex(x => x.KeyHash).IsUnique();
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.KeyPrefix).HasMaxLength(32);
+            b.Property(x => x.KeyHash).HasMaxLength(128);
+            b.Property(x => x.Scopes).HasColumnType("text[]");
+            b.Property(x => x.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<WebhookSubscription>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.IsActive });
+            b.Property(x => x.Url).HasMaxLength(2000);
+            b.Property(x => x.Events).HasColumnType("text[]");
+            b.Property(x => x.SigningSecret).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<WebhookDelivery>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.Status, x.NextAttemptAt });
+            b.Property(x => x.EventType).HasMaxLength(200);
+            b.Property(x => x.PayloadJson).HasColumnType("text");
+            b.Property(x => x.LastResponseBody).HasColumnType("text");
+            b.Property(x => x.LastError).HasColumnType("text");
+            b.HasOne(x => x.Subscription)
+                .WithMany()
+                .HasForeignKey(x => x.SubscriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuditLog>(b =>
+        {
+            b.HasIndex(x => new { x.TenantId, x.CreatedAt });
+            b.Property(x => x.Action).HasMaxLength(200);
+            b.Property(x => x.EntityType).HasMaxLength(200);
+            b.Property(x => x.IpAddress).HasMaxLength(100);
+            b.Property(x => x.UserAgent).HasMaxLength(1000);
+
+            b.Property(x => x.OldValues)
+                .HasConversion(
+                    v => v == null ? null : JsonSerializer.Serialize(v, jsonOptions),
+                    v => v == null ? null : JsonSerializer.Deserialize<Dictionary<string, object>>(v, jsonOptions))
+                .HasColumnType("jsonb");
+
+            b.Property(x => x.NewValues)
+                .HasConversion(
+                    v => v == null ? null : JsonSerializer.Serialize(v, jsonOptions),
+                    v => v == null ? null : JsonSerializer.Deserialize<Dictionary<string, object>>(v, jsonOptions))
+                .HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<EmailTemplate>(b =>
+        {
+            b.HasIndex(x => new { x.Category, x.Name, x.IsActive });
+            b.Property(x => x.Name).HasMaxLength(200);
+            b.Property(x => x.Subject).HasMaxLength(500);
+            b.Property(x => x.Category).HasMaxLength(200);
+            b.Property(x => x.HtmlContent).HasColumnType("text");
+            b.Property(x => x.TextContent).HasColumnType("text");
+            b.Property(x => x.Variables).HasColumnType("text[]");
+        });
+        modelBuilder.Entity<Tenant>().Ignore(x => x.LogoUrl);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.PrimaryColor);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.SecondaryColor);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.CustomDomain);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.StripeCustomerId);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.SubscriptionId);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.PlanId);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.BillingCycle);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.IsWhiteLabel);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.SuspendedAt);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.SuspensionReason);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.Settings);
+        modelBuilder.Entity<Tenant>().Ignore(x => x.UsageMultipliers);
+
+        modelBuilder.Entity<SubscriptionPlan>().Ignore(x => x.Features);
+        modelBuilder.Entity<SubscriptionPlan>().Ignore(x => x.Limits);
+
+        modelBuilder.Entity<TenantBillingAccount>()
+            .HasOne(x => x.Tenant)
+            .WithOne()
+            .HasForeignKey<TenantBillingAccount>(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TenantUsageSnapshot>()
+            .HasIndex(x => new { x.TenantId, x.PeriodStartUtc })
+            .IsUnique();
+
+        modelBuilder.Entity<TenantUsageSnapshot>()
+            .HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TenantUsageMultiplierOverride>()
+            .HasIndex(x => new { x.TenantId, x.MetricType })
+            .IsUnique();
+
+        modelBuilder.Entity<TenantUsageMultiplierOverride>()
+            .HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ManualPayment>()
+            .HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<TenantBillingPeriodInvoice>()
+            .HasIndex(x => new { x.TenantId, x.PeriodStartUtc, x.PeriodEndUtc })
+            .IsUnique();
+
+        modelBuilder.Entity<TenantBillingPeriodInvoice>()
+            .HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<User>().Ignore(x => x.IsEmailVerified);
+        modelBuilder.Entity<User>().Ignore(x => x.EmailVerifiedAt);
+        modelBuilder.Entity<User>().Ignore(x => x.RefreshToken);
+        modelBuilder.Entity<User>().Ignore(x => x.RefreshTokenExpiry);
+        modelBuilder.Entity<User>().Ignore(x => x.FirstName);
+        modelBuilder.Entity<User>().Ignore(x => x.LastName);
+        modelBuilder.Entity<User>().Ignore(x => x.StripeCustomerId);
+        modelBuilder.Entity<User>().Ignore(x => x.AvatarUrl);
+
+        // Avoid mapping dictionary breakdown/summary properties.
+        // EF Core treats Dictionary<,> as potential navigations and fails model validation.
+        modelBuilder.Entity<VideoAnalyticsSummary>().Ignore(x => x.DeviceBreakdown);
+        modelBuilder.Entity<VideoAnalyticsSummary>().Ignore(x => x.CountryBreakdown);
+        modelBuilder.Entity<VideoAnalyticsSummary>().Ignore(x => x.ViewerRetention);
+
+        // As a safety net, ignore any dictionary-typed properties across the model.
+        // Many entities include JSON-like Dictionary fields (Metadata/Settings/etc.) which are not
+        // configured for persistence in this minimal containerized setup.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())
+        {
+            var clrType = entityType.ClrType;
+            if (clrType == null)
+            {
+                continue;
+            }
+
+            var dictionaryPropertyNames = clrType
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.PropertyType != typeof(string))
+                .Where(p =>
+                    typeof(System.Collections.IDictionary).IsAssignableFrom(p.PropertyType) ||
+                    p.PropertyType.GetInterfaces().Any(i =>
+                        i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+                .Select(p => p.Name)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (dictionaryPropertyNames.Count == 0)
+            {
+                continue;
+            }
+
+            var entityBuilder = modelBuilder.Entity(clrType);
+            foreach (var propertyName in dictionaryPropertyNames)
+            {
+                entityBuilder.Ignore(propertyName);
+            }
+        }
+
+        // Apply tenant data isolation filters only when a tenant is actually resolved.
+        // During startup migrations/seeding there is no current tenant; applying filters can hide rows
+        // and cause duplicate inserts against unique constraints.
+        if (_tenantContext?.HasCurrentTenant == true)
         {
             TenantDataIsolation.ApplyTenantFilters(modelBuilder, _tenantContext);
         }
@@ -325,6 +659,66 @@ public class StreamVaultDbContext : DbContext
             .HasOne(va => va.User)
             .WithMany()
             .HasForeignKey(va => va.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalytics>()
+            .HasIndex(va => new { va.TenantId, va.VideoId, va.Timestamp });
+
+        modelBuilder.Entity<VideoAnalytics>()
+            .HasIndex(va => new { va.TenantId, va.Timestamp });
+
+        modelBuilder.Entity<VideoAnalytics>()
+            .HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(va => va.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsHourlyAggregate>()
+            .HasIndex(x => new { x.TenantId, x.VideoId, x.BucketStartUtc })
+            .IsUnique();
+
+        modelBuilder.Entity<VideoAnalyticsHourlyAggregate>()
+            .HasOne(x => x.Video)
+            .WithMany()
+            .HasForeignKey(x => x.VideoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsHourlyAggregate>()
+            .HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsDailyAggregate>()
+            .HasIndex(x => new { x.TenantId, x.VideoId, x.DateUtc })
+            .IsUnique();
+
+        modelBuilder.Entity<VideoAnalyticsDailyAggregate>()
+            .HasOne(x => x.Video)
+            .WithMany()
+            .HasForeignKey(x => x.VideoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsDailyAggregate>()
+            .HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsDailyCountryAggregate>()
+            .HasIndex(x => new { x.TenantId, x.VideoId, x.DateUtc, x.CountryCode })
+            .IsUnique();
+
+        modelBuilder.Entity<VideoAnalyticsDailyCountryAggregate>()
+            .HasOne(x => x.Video)
+            .WithMany()
+            .HasForeignKey(x => x.VideoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VideoAnalyticsDailyCountryAggregate>()
+            .HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Configure VideoAnalyticsSummary
@@ -830,26 +1224,15 @@ public class StreamVaultDbContext : DbContext
         modelBuilder.Entity<VideoShare>()
             .HasIndex(vs => new { vs.VideoId, vs.UserId });
 
-        // Configure JSONB columns for PostgreSQL
-        modelBuilder.Entity<Tenant>()
-            .Property(t => t.Settings)
-            .HasColumnType("jsonb");
-
-        modelBuilder.Entity<SubscriptionPlan>()
-            .Property(sp => sp.Features)
-            .HasColumnType("jsonb");
-
-        modelBuilder.Entity<SubscriptionPlan>()
-            .Property(sp => sp.Limits)
-            .HasColumnType("jsonb");
+        // JSONB dictionary properties are intentionally ignored in this minimal container setup.
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
 
-        // Add tenant interceptor if tenant context is available
-        if (_tenantContext != null)
+        // Add tenant interceptor only when a tenant is actually resolved.
+        if (_tenantContext?.HasCurrentTenant == true)
         {
             optionsBuilder.AddInterceptors(new TenantInterceptor(_tenantContext));
         }

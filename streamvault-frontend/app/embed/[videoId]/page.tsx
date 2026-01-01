@@ -1,16 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { VideoPlayer } from '@/components/videos/VideoPlayer'
 import { Button } from '@/components/ui/button'
+import { apiClient } from '@/lib/api-client'
 import { 
   ArrowTopRightOnSquareIcon,
   PlayIcon,
   SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-  ArrowsPointingOutIcon,
-  ClosedCaptionIcon
+  ArrowsPointingOutIcon
 } from '@heroicons/react/24/outline'
 
 interface VideoData {
@@ -43,8 +42,33 @@ interface VideoData {
   }
 }
 
+interface VideoDetailsResponse {
+  id: string
+  title: string
+  description?: string | null
+  viewCount: number
+  isPublic: boolean
+  status: string
+  createdAtUtc: string
+  publishedAtUtc?: string | null
+  thumbnailUrl?: string | null
+  watchUrl: string
+}
+
+interface PlaybackTokenResponse {
+  token: string
+  expiresAt: string
+  embedUrl: string
+}
+
+interface PlaybackInfoResponse {
+  mp4Url: string
+  thumbnailUrl?: string | null
+}
+
 export default function EmbedPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const [video, setVideo] = useState<VideoData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -58,68 +82,46 @@ export default function EmbedPage() {
 
   const fetchVideoData = async (videoId: string) => {
     try {
-      // Mock API call - replace with actual implementation
-      const mockVideo: VideoData = {
-        id: videoId,
-        title: 'Product Demo 2024 - Complete Overview',
-        videoUrl: '/api/placeholder/video.mp4',
-        thumbnail: '/api/placeholder/1280/720',
-        captions: [
-          {
-            id: '1',
-            language: 'en',
-            label: 'English',
-            url: '/api/captions/en.vtt'
-          },
-          {
-            id: '2',
-            language: 'es',
-            label: 'Spanish',
-            url: '/api/captions/es.vtt'
-          }
-        ],
-        chapters: [
-          {
-            id: '1',
-            title: 'Introduction',
-            startTime: 0,
-            endTime: 60
-          },
-          {
-            id: '2',
-            title: 'Getting Started',
-            startTime: 60,
-            endTime: 180
-          }
-        ],
-        allowEmbed: true,
-        allowDownload: true,
-        playerSettings: {
-          autoplay: false,
-          controls: true,
-          loop: false,
-          muted: false,
-          showTitle: true,
-          showShareButton: true,
-          defaultQuality: 'auto'
-        }
+      setError('')
+
+      // Player settings from query string
+      const settings = {
+        autoplay: searchParams.get('autoplay') === '1',
+        controls: searchParams.get('controls') !== '0',
+        loop: searchParams.get('loop') === '1',
+        muted: searchParams.get('muted') === '1',
+        showTitle: searchParams.get('title') !== '0',
+        showShareButton: searchParams.get('share') !== '0',
+        defaultQuality: 'auto'
       }
-      
-      // Parse URL parameters for player settings
-      const urlParams = new URLSearchParams(window.location.search)
-      const settings = { ...mockVideo.playerSettings }
-      
-      if (urlParams.get('autoplay') === '1') settings.autoplay = true
-      if (urlParams.get('controls') === '0') settings.controls = false
-      if (urlParams.get('loop') === '1') settings.loop = true
-      if (urlParams.get('muted') === '1') settings.muted = true
-      if (urlParams.get('title') === '0') settings.showTitle = false
-      if (urlParams.get('share') === '0') settings.showShareButton = false
-      
-      mockVideo.playerSettings = settings
-      setVideo(mockVideo)
+
+      const [details] = await Promise.all([
+        apiClient.get<VideoDetailsResponse>(`/api/v1/videos/${videoId}`),
+      ])
+
+      const tokenFromQuery = searchParams.get('token')
+      const playbackToken = tokenFromQuery
+        ? tokenFromQuery
+        : (await apiClient.post<PlaybackTokenResponse>(`/api/v1/videos/${videoId}/playback-token?expiresInSeconds=3600`)).token
+
+      const playback = await apiClient.get<PlaybackInfoResponse>(
+        `/api/v1/videos/${videoId}/playback?token=${encodeURIComponent(playbackToken)}`
+      )
+
+      const resolvedThumbnail = playback.thumbnailUrl || details.thumbnailUrl || ''
+      setVideo({
+        id: details.id,
+        title: details.title,
+        videoUrl: playback.mp4Url,
+        thumbnail: resolvedThumbnail,
+        captions: [],
+        chapters: [],
+        allowEmbed: true,
+        allowDownload: false,
+        playerSettings: settings,
+      })
     } catch (err: any) {
-      setError(err.message || 'Failed to load video')
+      setError(err?.response?.data?.error || err?.message || 'Failed to load video')
     } finally {
       setLoading(false)
     }

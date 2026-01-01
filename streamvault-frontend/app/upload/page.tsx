@@ -3,12 +3,18 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
+import * as tus from 'tus-js-client';
+
+type InitiateTusUploadResponse = {
+  videoId: string;
+  tusEndpoint: string;
+  uploadMetadata: Record<string, string>;
+};
 
 export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
-  const [tags, setTags] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -40,54 +46,42 @@ export default function UploadPage() {
     setUploadProgress(0);
 
     try {
-      // Initiate upload
-      const uploadResponse = await apiClient.post('/api/v1/videos/upload/initiate', {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setError('You must be logged in to upload videos');
+        return;
+      }
+
+      const init = await apiClient.post<InitiateTusUploadResponse>('/api/v1/videos/upload/initiate', {
         title,
         description,
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
         isPublic,
-        tags: tags.split(',').map(t => t.trim()).filter(t => t)
       });
 
-      const { uploadUrl, videoId, uploadToken } = uploadResponse.data as {
-        uploadUrl: string;
-        videoId: string;
-        uploadToken: string;
-      };
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+      const endpoint = `${apiBase}${init.tusEndpoint}`;
 
-      // For simplicity, we'll do a direct upload
-      // In production, implement chunked uploads
-      const formData = new FormData();
-      formData.append('file', file);
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint,
+          metadata: init.uploadMetadata,
+          chunkSize: 5 * 1024 * 1024,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          onError: (err) => reject(err),
+          onProgress: (bytesUploaded, bytesTotal) => {
+            if (bytesTotal > 0) setUploadProgress((bytesUploaded / bytesTotal) * 100);
+          },
+          onSuccess: () => resolve(),
+        });
 
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const progress = (e.loaded / e.total) * 100;
-          setUploadProgress(progress);
-        }
+        upload.start();
       });
 
-      await new Promise((resolve, reject) => {
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            resolve(xhr.response);
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        };
-        xhr.onerror = () => reject(new Error('Upload failed'));
-        xhr.open('PUT', uploadUrl, true);
-        xhr.send(formData);
-      });
-
-      // Complete upload
-      await apiClient.post('/api/v1/videos/upload/complete', {
-        videoId,
-        uploadToken
-      });
-
-      router.push('/videos');
+      router.push(`/videos/${init.videoId}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Upload failed');
     } finally {
@@ -167,21 +161,6 @@ export default function UploadPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Describe your video"
               />
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags
-              </label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter tags separated by commas"
-              />
-              <p className="mt-1 text-xs text-gray-500">Separate tags with commas</p>
             </div>
 
             {/* Visibility */}

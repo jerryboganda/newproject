@@ -1,0 +1,135 @@
+version: '3.8'
+
+# StreamVault SaaS Platform - Podman Compose Configuration
+# Optimized for Windows with Podman Desktop
+# Services: PostgreSQL 15, Redis 7, API Backend, Admin Dashboard
+
+services:
+  # PostgreSQL 15 Database - Primary data store for all entities
+  postgres:
+    image: postgres:15-alpine
+    container_name: streamvault-postgres
+    environment:
+      POSTGRES_DB: streamvault
+      POSTGRES_USER: streamvault
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-streamvault_secure_pass_2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamvault"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 7 - Cache and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: streamvault-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-streamvault_redis_2025}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-streamvault_redis_2025} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend API - ASP.NET Core 8
+  api:
+    build:
+      context: ./streamvault-backend
+      dockerfile: Dockerfile
+    container_name: streamvault-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=streamvault;Username=streamvault;Password=${POSTGRES_PASSWORD:-streamvault_secure_pass_2025};Port=5432;
+      Redis__ConnectionString: redis:6379,password=${REDIS_PASSWORD:-streamvault_redis_2025}
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-your_super_secret_jwt_key_streamvault_2025_minimum_32_chars}
+      JwtSettings__Issuer: https://streamvault.local
+      JwtSettings__Audience: streamvault-api
+      JwtSettings__ExpiryInMinutes: 15
+      JwtSettings__RefreshTokenExpiryInDays: 7
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-sk_test_YOUR_TEST_KEY}
+      Stripe__PublishableKey: ${STRIPE_PUBLISHABLE_KEY:-pk_test_YOUR_TEST_KEY}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-whsec_test_YOUR_WEBHOOK_SECRET}
+      Email__SmtpServer: ${EMAIL_SMTP_SERVER:-smtp.mailtrap.io}
+      Email__SmtpPort: ${EMAIL_SMTP_PORT:-2525}
+      Email__SmtpUsername: ${EMAIL_SMTP_USER:-your_smtp_user}
+      Email__SmtpPassword: ${EMAIL_SMTP_PASSWORD:-your_smtp_password}
+      Email__FromEmail: ${EMAIL_FROM:-noreply@streamvault.local}
+      Email__FromName: StreamVault
+      Bunny__ApiKey: ${BUNNY_API_KEY:-your_bunny_net_api_key}
+      Bunny__LibraryId: ${BUNNY_LIBRARY_ID:-your_bunny_library_id}
+      AllowedHosts: "*"
+    volumes:
+      - api_logs:/app/logs
+      - api_uploads:/app/uploads
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Application - Next.js 14
+  frontend:
+    build:
+      context: ./streamvault-admin-dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://api:8080/api/v1
+    container_name: streamvault-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8080/api/v1
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-pk_test_YOUR_TEST_KEY}
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - streamvault-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000', (r) => { if (r.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  api_logs:
+    driver: local
+  api_uploads:
+    driver: local
+
+networks:
+  streamvault-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

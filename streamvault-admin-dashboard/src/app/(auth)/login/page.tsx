@@ -180,7 +180,7 @@ export default function LoginPage() {
             {isLogin && (
               <div className="flex items-center justify-between">
                 <Link
-                  href="/auth/forgot-password"
+                  href="/forgot-password"
                   className="text-sm text-blue-600 hover:underline"
                 >
                   Forgot password?

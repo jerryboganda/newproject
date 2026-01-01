@@ -3,22 +3,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   HomeIcon,
-  VideoIcon,
-  UserGroupIcon,
-  CogIcon,
+  VideoCameraIcon,
+  UsersIcon,
+  Cog6ToothIcon,
   ChartBarIcon,
   FolderIcon,
-  XIcon
-} from '@heroicons/react/outline';
-import classNames from 'classnames';
+  XMarkIcon
+} from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, current: true },
-  { name: 'Videos', href: '/videos', icon: VideoIcon, current: false },
+  { name: 'Videos', href: '/videos', icon: VideoCameraIcon, current: false },
   { name: 'Collections', href: '/collections', icon: FolderIcon, current: false },
   { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, current: false },
-  { name: 'Users', href: '/users', icon: UserGroupIcon, current: false },
-  { name: 'Settings', href: '/settings', icon: CogIcon, current: false },
+  { name: 'Users', href: '/users', icon: UsersIcon, current: false },
+  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, current: false },
 ];
 
 export function Sidebar() {
@@ -28,7 +28,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile sidebar */}
-      <div className={classNames(
+      <div className={clsx(
         "fixed inset-0 flex z-40 md:hidden",
         sidebarOpen ? "block" : "hidden"
       )}>
@@ -41,7 +41,7 @@ export function Sidebar() {
               onClick={() => setSidebarOpen(false)}
             >
               <span className="sr-only">Close sidebar</span>
-              <XIcon className="h-6 w-6 text-white" aria-hidden="true" />
+              <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
             </button>
           </div>
           <SidebarContent />
@@ -70,7 +70,7 @@ function SidebarContent() {
             <Link
               key={item.name}
               href={item.href}
-              className={classNames(
+              className={clsx(
                 item.current
                   ? 'bg-blue-100 text-blue-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
@@ -78,7 +78,7 @@ function SidebarContent() {
               )}
             >
               <item.icon
-                className={classNames(
+                  className={clsx(
                   item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500',
                   'mr-3 flex-shrink-0 h-6 w-6'
                 )}

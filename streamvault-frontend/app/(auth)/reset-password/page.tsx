@@ -283,8 +283,8 @@ export default function ResetPasswordPage() {
           Security reminder
         </h3>
         <ul className="text-xs text-yellow-700 space-y-1">
-          <li>• Choose a unique password that you haven't used before</li>
-          <li>• Don't share your password with anyone</li>
+          <li>• Choose a unique password that you haven&apos;t used before</li>
+          <li>• Don&apos;t share your password with anyone</li>
           <li>• Consider using a password manager</li>
           <li>• Enable two-factor authentication for extra security</li>
         </ul>

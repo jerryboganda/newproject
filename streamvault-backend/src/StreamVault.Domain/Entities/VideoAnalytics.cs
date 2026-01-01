@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using StreamVault.Domain.Interfaces;
 
 namespace StreamVault.Domain.Entities;
 
-public class VideoAnalytics
+public class VideoAnalytics : ITenantEntity
 {
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -10,7 +11,10 @@ public class VideoAnalytics
     [Required]
     public Guid VideoId { get; set; }
 
-    public Guid UserId { get; set; }
+    [Required]
+    public Guid TenantId { get; set; }
+
+    public Guid? UserId { get; set; }
 
     public AnalyticsEventType EventType { get; set; }
 
@@ -42,7 +46,7 @@ public class VideoAnalytics
 
     // Navigation properties
     public Video Video { get; set; } = null!;
-    public User User { get; set; } = null!;
+    public User? User { get; set; }
 }
 
 public class VideoAnalyticsSummary

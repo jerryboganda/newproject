@@ -26,7 +26,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Interfaces\**\*.cs" />
+    <Compile Include="Auth\IAuthService.cs" />
+    <Compile Include="Auth\DTOs\AuthDTOs.cs" />
+    <Compile Include="Interfaces\ITenantContext.cs" />
+    <Compile Include="Interfaces\ITenantResolver.cs" />
     <Compile Include="Services\TenantContext.cs" />
+    <Compile Include="Services\TokenService.cs" />
+    <Compile Include="Services\IEmailService.cs" />
+    <Compile Include="Services\EmailService.cs" />
+    <Compile Include="Services\PlaybackTokenService.cs" />
+    <Compile Include="Services\IBunnyNetService.cs" />
+    <Compile Include="Emails\DTOs\EmailTemplateDTOs.cs" />
+    <Compile Include="DependencyInjection.cs" />
   </ItemGroup>
 </Project>

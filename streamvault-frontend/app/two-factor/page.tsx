@@ -93,7 +93,7 @@ export default function TwoFactorPage() {
               onClick={handleResendCode}
               className="font-medium text-blue-600 hover:text-blue-500"
             >
-              Didn't receive a code? Resend
+              Didn&apos;t receive a code? Resend
             </button>
           </div>
 

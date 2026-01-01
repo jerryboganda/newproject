@@ -12,7 +12,6 @@ using StreamVault.Infrastructure.Data;
 namespace StreamVault.Infrastructure.Migrations
 {
     [DbContext(typeof(StreamVaultDbContext))]
-    [Migration("20240101000000_InitialMultiTenancySetup")]
     partial class InitialMultiTenancySetup
     {
         /// <inheritdoc />

@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES } from "@/lib/preferences/layout";
+import { SIDEBAR_COLLAPSIBLE_VALUES, SIDEBAR_VARIANT_VALUES, type SidebarCollapsible, type SidebarVariant } from "@/lib/preferences/layout";
 import { cn } from "@/lib/utils";
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
-import { streamvaultApi } from "@/lib/streamvault-api";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -21,9 +21,10 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [variant, setVariant] = useState("inset");
-  const [collapsible, setCollapsible] = useState("icon");
+  const [variant, setVariant] = useState<SidebarVariant>("inset");
+  const [collapsible, setCollapsible] = useState<SidebarCollapsible>("icon");
   const [defaultOpen, setDefaultOpen] = useState(true);
+  const authUser = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const initDashboard = async () => {
@@ -36,15 +37,17 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
       }
 
       try {
-        // Fetch user profile
-        const profile = await streamvaultApi.user.profile();
+        // Backend profile endpoint isn't implemented yet.
+        // Use the user object returned from login (persisted in auth-store) as the sidebar identity.
+        const email = authUser?.email;
+        const displayName = `${authUser?.firstName ?? ""} ${authUser?.lastName ?? ""}`.trim();
         const userData = {
-          id: profile.id,
-          name: `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || profile.username || "Admin",
-          username: profile.username || (profile.email?.split("@")[0] ?? "admin"),
-          email: profile.email,
-          avatar: profile.avatar || "",
-          role: profile.role || (profile.isSuperAdmin ? "super-admin" : "admin"),
+          id: authUser?.id ?? "local",
+          name: displayName || email || "Admin",
+          username: email ? email.split("@")[0] : "admin",
+          email: email ?? "",
+          avatar: authUser?.avatarUrl ?? "",
+          role: authUser?.roles?.includes("SuperAdmin") ? "super-admin" : "admin",
         };
         
         setUser(userData);
@@ -53,9 +56,16 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
         const savedVariant = localStorage.getItem("sidebar_variant") || "inset";
         const savedCollapsible = localStorage.getItem("sidebar_collapsible") || "icon";
         const savedOpen = localStorage.getItem("sidebar_state") !== "false";
-        
-        setVariant(savedVariant);
-        setCollapsible(savedCollapsible);
+
+        const allowedVariants = SIDEBAR_VARIANT_VALUES as readonly SidebarVariant[];
+        const allowedCollapsible = SIDEBAR_COLLAPSIBLE_VALUES as readonly SidebarCollapsible[];
+
+        setVariant(allowedVariants.includes(savedVariant as SidebarVariant) ? (savedVariant as SidebarVariant) : "inset");
+        setCollapsible(
+          allowedCollapsible.includes(savedCollapsible as SidebarCollapsible)
+            ? (savedCollapsible as SidebarCollapsible)
+            : "icon",
+        );
         setDefaultOpen(savedOpen);
         
       } catch (error) {
@@ -68,7 +78,7 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
     };
 
     initDashboard();
-  }, [router]);
+  }, [router, authUser]);
 
   if (isLoading) {
     return (

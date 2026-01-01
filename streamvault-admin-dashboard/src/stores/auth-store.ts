@@ -46,7 +46,7 @@ interface AuthActions {
   clearAuth: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, "");
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
@@ -84,7 +84,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email, password, tenantSlug }),
+            body: JSON.stringify({ email, password, tenantSlug: tenantSlug?.trim() || "demo" }),
           });
 
           const data = await response.json();
@@ -93,14 +93,21 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             throw new Error(data.error || "Login failed");
           }
 
-          const { token, user } = data;
+          const accessToken = data.accessToken;
+          const refreshToken = data.refreshToken;
+          const user = data.user;
+          if (!accessToken || !user) {
+            throw new Error("Login failed");
+          }
           
           // Save token to localStorage
           if (typeof window !== "undefined") {
-            localStorage.setItem("auth-token", token);
+            localStorage.setItem("auth-token", accessToken);
+            // Also set cookie so Next middleware can gate dashboard routes
+            document.cookie = `auth-token=${encodeURIComponent(accessToken)}; Path=/; SameSite=Lax`;
           }
           
-          set({ accessToken: token, isAuthenticated: true, user });
+          set({ accessToken, refreshToken: refreshToken ?? null, isAuthenticated: true, user });
         } catch (error) {
           console.error("Login error:", error);
           throw error;
@@ -170,6 +177,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           // Remove token from localStorage
           if (typeof window !== "undefined") {
             localStorage.removeItem("auth-token");
+            document.cookie = "auth-token=; Path=/; Max-Age=0; SameSite=Lax";
           }
           get().clearAuth();
         }

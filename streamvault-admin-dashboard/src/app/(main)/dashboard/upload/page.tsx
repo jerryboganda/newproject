@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import * as tus from "tus-js-client";
 
 export default function Page() {
   const [title, setTitle] = useState("");
@@ -24,14 +25,26 @@ export default function Page() {
       return;
     }
 
-    // Backend currently has mocked upload endpoints in WorkingBackend.
-    // This UI wires to them so you can later replace with real upload flow.
     try {
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1").replace(/\/$/, "");
+      const apiOrigin = apiBase.endsWith("/api/v1") ? apiBase.slice(0, -"/api/v1".length) : apiBase;
+      const token = localStorage.getItem("auth-token");
+      if (!token) throw new Error("Not authenticated");
+
       setStatus("Initiating upload...");
-      const initRes = await fetch("http://localhost:5000/api/v1/videos/upload/initiate", {
+      const initRes = await fetch(`${apiBase}/videos/upload/initiate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, fileName: file.name, contentType: file.type || "application/octet-stream" }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-Tenant-Slug": "demo",
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+        }),
       });
 
       if (!initRes.ok) {
@@ -39,19 +52,33 @@ export default function Page() {
       }
 
       const init = await initRes.json();
-      setStatus(`Upload initiated. videoId=${init.videoId}. Completing...`);
 
-      const completeRes = await fetch("http://localhost:5000/api/v1/videos/upload/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoId: init.videoId, uploadToken: init.uploadToken }),
+      setStatus(`Uploading... videoId=${init.videoId}`);
+      const tusEndpoint = `${apiOrigin}${init.tusEndpoint}`;
+
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint: tusEndpoint,
+          metadata: init.uploadMetadata || {
+            videoId: init.videoId,
+            fileName: file.name,
+            contentType: file.type,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Tenant-Slug": "demo",
+          },
+          onError: (err) => reject(err),
+          onProgress: (bytesUploaded, bytesTotal) => {
+            const pct = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0;
+            setStatus(`Uploading... ${pct}%`);
+          },
+          onSuccess: () => resolve(),
+        });
+        upload.start();
       });
 
-      if (!completeRes.ok) {
-        throw new Error(`Complete failed: ${completeRes.status}`);
-      }
-
-      setStatus("Upload completed (mock). Your backend can be upgraded to store/process the file.");
+      setStatus("Upload finished. Processing...");
       setTitle("");
       setDescription("");
       setFile(null);

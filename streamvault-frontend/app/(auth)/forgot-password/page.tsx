@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
         </h2>
         
         <p className="text-gray-600 mb-6">
-          We've sent a password reset link to{' '}
+          We&apos;ve sent a password reset link to{' '}
           <span className="font-medium">{email}</span>
         </p>
         
@@ -67,13 +67,13 @@ export default function ForgotPasswordPage() {
         
         <div className="mt-6 p-4 bg-gray-50 rounded-lg text-left">
           <h3 className="text-sm font-medium text-gray-900 mb-2">
-            Didn't receive the email?
+            Didn&apos;t receive the email?
           </h3>
           <ul className="text-xs text-gray-600 space-y-1">
             <li>• Check your spam folder</li>
             <li>• Make sure the email address is correct</li>
             <li>• Wait a few minutes for it to arrive</li>
-            <li>• Contact support if you still don't see it</li>
+            <li>• Contact support if you still don&apos;t see it</li>
           </ul>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
         </h2>
         
         <p className="mt-2 text-sm text-gray-600">
-          Enter your email address and we'll send you a link to reset your password
+          Enter your email address and we&apos;ll send you a link to reset your password
         </p>
       </div>
 
@@ -146,8 +146,8 @@ export default function ForgotPasswordPage() {
         <ul className="text-xs text-blue-700 space-y-1">
           <li>• The reset link will expire in 1 hour</li>
           <li>• Make sure to check your spam folder</li>
-          <li>• If you don't receive an email, try again with a different address</li>
-          <li>• For security reasons, we won't confirm if an email exists</li>
+          <li>• If you don&apos;t receive an email, try again with a different address</li>
+          <li>• For security reasons, we won&apos;t confirm if an email exists</li>
         </ul>
       </div>
     </>

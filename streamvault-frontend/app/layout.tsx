@@ -5,7 +5,6 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import QueryProvider from '@/providers/QueryProvider';
 import { Toaster } from 'sonner';
-import { WebSocketProvider } from '@/contexts/WebSocketContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -102,14 +101,12 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} h-full bg-gray-50 antialiased`}>
         <QueryProvider>
-          <WebSocketProvider>
-            <AuthProvider>
-              <div className="min-h-full">
-                {children}
-              </div>
-              <Toaster />
-            </AuthProvider>
-          </WebSocketProvider>
+          <AuthProvider>
+            <div className="min-h-full">
+              {children}
+            </div>
+            <Toaster />
+          </AuthProvider>
         </QueryProvider>
         <script
           dangerouslySetInnerHTML={{

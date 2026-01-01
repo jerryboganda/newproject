@@ -3,24 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
+import { VideoPlayer } from '@/components/videos/VideoPlayer';
 
 interface Video {
   id: string;
   title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  videoUrl: string;
-  durationSeconds: number;
+  description?: string | null;
+  thumbnailUrl?: string | null;
   viewCount: number;
   createdAt: string;
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  tags: string[];
   isPublic: boolean;
+  status: string;
+  watchUrl: string;
 }
+
+type PlaybackTokenResponse = { token: string; expiresAt: string; embedUrl: string };
+type PlaybackInfoResponse = { mp4Url: string; thumbnailUrl?: string | null };
 
 export default function VideoDetailPage() {
   const params = useParams();
@@ -32,6 +30,8 @@ export default function VideoDetailPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editIsPublic, setEditIsPublic] = useState(false);
+  const [playbackUrl, setPlaybackUrl] = useState<string>('');
+  const [playbackPoster, setPlaybackPoster] = useState<string>('');
 
   useEffect(() => {
     if (params.id) {
@@ -42,12 +42,16 @@ export default function VideoDetailPage() {
   const fetchVideo = async (id: string) => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/v1/videos/${id}`);
-      const videoData = response.data as any;
+      const videoData = await apiClient.get<Video>(`/api/v1/videos/${id}`);
       setVideo(videoData);
       setEditTitle(videoData.title);
       setEditDescription(videoData.description || '');
       setEditIsPublic(videoData.isPublic);
+
+      const token = await apiClient.post<PlaybackTokenResponse>(`/api/v1/videos/${id}/playback-token?expiresInSeconds=3600`);
+      const playback = await apiClient.get<PlaybackInfoResponse>(`/api/v1/videos/${id}/playback?token=${encodeURIComponent(token.token)}`);
+      setPlaybackUrl(playback.mp4Url);
+      setPlaybackPoster(playback.thumbnailUrl || videoData.thumbnailUrl || '');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch video');
     } finally {
@@ -88,17 +92,6 @@ export default function VideoDetailPage() {
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -131,14 +124,18 @@ export default function VideoDetailPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Video Player */}
         <div className="bg-black rounded-lg overflow-hidden mb-6">
-          <video
-            controls
-            className="w-full aspect-video"
-            poster={video.thumbnailUrl}
-          >
-            <source src={video.videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          {playbackUrl ? (
+            <VideoPlayer
+              src={playbackUrl}
+              poster={playbackPoster || undefined}
+              controls
+              className="w-full"
+            />
+          ) : (
+            <div className="w-full aspect-video flex items-center justify-center text-white text-sm">
+              Playback not available
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -228,22 +225,6 @@ export default function VideoDetailPage() {
               )}
             </div>
 
-            {/* Tags */}
-            {video.tags.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Tags</h2>
-                <div className="flex flex-wrap gap-2">
-                  {video.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Sidebar */}
@@ -253,21 +234,22 @@ export default function VideoDetailPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Video Details</h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Duration</dt>
-                  <dd className="text-sm text-gray-900">{formatDuration(video.durationSeconds)}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Status</dt>
+                  <dd className="text-sm text-gray-900">{video.status}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Uploaded by</dt>
-                  <dd className="text-sm text-gray-900">
-                    {video.user.firstName} {video.user.lastName}
-                  </dd>
-                  <dd className="text-xs text-gray-500">{video.user.email}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Created</dt>
+                  <dd className="text-sm text-gray-900">{formatDate(video.createdAt)}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Visibility</dt>
                   <dd className="text-sm text-gray-900">
                     {video.isPublic ? 'Public' : 'Private'}
                   </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Embed URL</dt>
+                  <dd className="text-xs text-gray-500 break-all">{video.watchUrl}</dd>
                 </div>
               </dl>
             </div>

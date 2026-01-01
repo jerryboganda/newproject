@@ -22,6 +22,11 @@ obj/
 coverage/
 build/
 out/
+*.tsbuildinfo
+
+# Local publish artifacts
+.publish-test/
+**/.publish-test/
 
 # IDE
 .vscode/
@@ -92,7 +97,6 @@ StreamVaultClean/
 StreamVaultWorking/
 WorkingBackend/
 streamvault-fresh/
-streamvault-frontend/
 streamvault-shadcn/
 
 # Test files
